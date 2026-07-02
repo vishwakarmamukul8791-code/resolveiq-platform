@@ -14,6 +14,10 @@ from backend.services.document_registry import (
     load_registry,
     save_registry
 )
+from backend.config import (
+    CHUNK_SIZE,
+    CHUNK_OVERLAP
+)
 
 import os
 import uuid
@@ -21,12 +25,23 @@ import uuid
 router = APIRouter()
 
 
-def create_chunks(text, chunk_size=100):
+def create_chunks(text):
 
     chunks = []
 
-    for i in range(0, len(text), chunk_size):
-        chunks.append(text[i:i + chunk_size])
+    start = 0
+
+    while start < len(text):
+
+        end = start + CHUNK_SIZE
+
+        chunks.append(
+            text[start:end]
+        )
+
+        start += (
+            CHUNK_SIZE - CHUNK_OVERLAP
+        )
 
     return chunks
 

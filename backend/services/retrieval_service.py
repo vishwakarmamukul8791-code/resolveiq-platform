@@ -1,7 +1,7 @@
 from backend.services.embedding_service import generate_embeddings
 from backend.services.faiss_service import load_faiss_index
 from backend.services.vector_store import load_metadata
-
+from backend.config import TOP_K
 
 def search_similar_chunks(query):
 
@@ -12,9 +12,9 @@ def search_similar_chunks(query):
     index = load_faiss_index()
 
     distances, indices = index.search(
-        query_embedding,
-        5
-    )
+    query_embedding,
+    TOP_K
+)
 
     metadata = load_metadata()
 

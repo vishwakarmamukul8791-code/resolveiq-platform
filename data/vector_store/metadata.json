@@ -1,587 +1,92 @@
 [
     {
-        "chunk_id": "2526a8bc-9642-45de-b782-182965eda0c2",
-        "document_name": "Day2 project.txt",
-        "chunk": "Day2 project\n\n# AI-Powered Incident Resolution Copilot\n\n## Problem Statement\n\nLarge organizations ma"
-    },
-    {
-        "chunk_id": "308f7f7b-8f20-4268-b10f-3e4f3fd00e85",
-        "document_name": "Day2 project.txt",
-        "chunk": "intain thousands of resolved incidents, defect tickets, and knowledge-base documents.\n\nWhen a new in"
-    },
-    {
-        "chunk_id": "9193feba-f1ad-419e-9f84-908634dc17ca",
-        "document_name": "Day2 project.txt",
-        "chunk": "cident occurs, L1/L2 support engineers spend significant time searching historical tickets and docum"
-    },
-    {
-        "chunk_id": "0e602b11-c8ec-4efc-bee5-87c558cd3554",
-        "document_name": "Day2 project.txt",
-        "chunk": "entation to find relevant resolutions.\n\nThe goal of this project is to build an AI-powered Incident "
-    },
-    {
-        "chunk_id": "f46a6605-97cd-45d5-b0cc-ab0b037b4867",
-        "document_name": "Day2 project.txt",
-        "chunk": "Resolution Copilot that uses Retrieval-Augmented Generation (RAG) to retrieve similar incidents and "
-    },
-    {
-        "chunk_id": "1a8d96c0-190a-4fbb-9df6-fc363df6bc9c",
-        "document_name": "Day2 project.txt",
-        "chunk": "provide recommended resolutions.\n\n---\n\n# Project Actors\n\n## Admin\n\nResponsibilities:\n\n* Upload knowl"
-    },
-    {
-        "chunk_id": "2a1e6b18-f492-4006-b01c-1f611f3320bd",
-        "document_name": "Day2 project.txt",
-        "chunk": "edge-base documents\n* Upload historical incident tickets\n* Upload runbooks\n* Upload RCA (Root Cause "
-    },
-    {
-        "chunk_id": "f1ffcccc-da4e-4b7b-a26d-9a1c81f036d1",
-        "document_name": "Day2 project.txt",
-        "chunk": "Analysis) documents\n\n## Support Engineer (Primary User)\n\nResponsibilities:\n\n* Search for incident re"
-    },
-    {
-        "chunk_id": "fd26ca0f-1078-437e-8a66-2f022071acb6",
-        "document_name": "Day2 project.txt",
-        "chunk": "solutions\n* Retrieve similar historical incidents\n* View recommended fixes\n* Provide feedback\n* Esca"
-    },
-    {
-        "chunk_id": "a85a4677-f34f-42ab-8cc3-335e25158234",
-        "document_name": "Day2 project.txt",
-        "chunk": "late unresolved incidents\n\n---\n\n# Technology Stack\n\nFrontend:\n\n* HTML\n* CSS\n* JavaScript\n\nBackend:\n\n"
-    },
-    {
-        "chunk_id": "28610853-4461-4936-80ba-d217714b956b",
-        "document_name": "Day2 project.txt",
-        "chunk": "* Python\n* FastAPI\n\nAI/NLP:\n\n* Sentence Transformers\n* LangChain\n\nVector Database:\n\n* FAISS\n\nLLM:\n\n*"
-    },
-    {
-        "chunk_id": "7a28a7ae-3c84-49ff-bda7-08fee12cf933",
-        "document_name": "Day2 project.txt",
-        "chunk": " Llama 3 (Ollama)\n\nStorage:\n\n* CSV\n* SQLite\n\n---\n\n# RAG Pipeline\n\nDocument Upload\n\u2193\nDocument Process"
-    },
-    {
-        "chunk_id": "a15f211e-76d1-47e4-804f-a6e1849af6d9",
-        "document_name": "Day2 project.txt",
-        "chunk": "ing\n\u2193\nChunking\n\u2193\nEmbedding Generation\n\u2193\nStore Embeddings in FAISS\n\u2193\nUser Query\n\u2193\nSemantic Search\n\u2193\nR"
-    },
-    {
-        "chunk_id": "bf56d0fe-e0b4-47bc-a92c-8f8a7bb3093c",
-        "document_name": "Day2 project.txt",
-        "chunk": "etrieve Relevant Chunks\n\u2193\nLLM Generates Resolution\n\n---\n\n# FastAPI Concepts Learned\n\n## FastAPI Appl"
-    },
-    {
-        "chunk_id": "3d51c1e1-d778-4a37-bbb7-4cb061d8e960",
-        "document_name": "Day2 project.txt",
-        "chunk": "ication\n\n```python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n```\n\nCreates an ASGI application.\n\n-"
-    },
-    {
-        "chunk_id": "37f22e03-b0aa-4749-94b6-3a36e0cb3d33",
-        "document_name": "Day2 project.txt",
-        "chunk": "--\n\n## Route\n\n```python\n@app.get(\"/\")\ndef home():\n```\n\nMaps HTTP requests to Python functions.\n\n---\n"
-    },
-    {
-        "chunk_id": "3bf60448-6320-4450-a95d-06f419af8e1e",
-        "document_name": "Day2 project.txt",
-        "chunk": "\n## APIRouter\n\n```python\nrouter = APIRouter()\n```\n\nUsed to organize APIs into separate modules.\n\nExa"
-    },
-    {
-        "chunk_id": "c078ac0c-dad0-4022-9274-ad9c0dc9e4a3",
-        "document_name": "Day2 project.txt",
-        "chunk": "mple:\n\n* upload.py\n* process.py\n\n---\n\n## UploadFile\n\n```python\nfile: UploadFile = File(...)\n```\n\nRep"
-    },
-    {
-        "chunk_id": "cdfe6ddc-c486-43b8-b467-16d62fd0f010",
-        "document_name": "Day2 project.txt",
-        "chunk": "resents an uploaded file.\n\nBenefits:\n\n* Memory efficient\n* Supports large files\n* Commonly used in F"
-    },
-    {
-        "chunk_id": "62bc32c6-2392-4e1a-a12e-f308945919c0",
-        "document_name": "Day2 project.txt",
-        "chunk": "astAPI file uploads\n\n---\n\n## Async / Await\n\n```python\nasync def upload_file():\n```\n\n```python\nconten"
-    },
-    {
-        "chunk_id": "bfc4866e-1f82-4833-a3fd-f6e65b9995da",
-        "document_name": "Day2 project.txt",
-        "chunk": "t = await file.read()\n```\n\nUsed for I/O operations such as:\n\n* File reading\n* Database calls\n* API r"
-    },
-    {
-        "chunk_id": "136379e4-239b-4c7f-af71-c1a33f3ea98f",
-        "document_name": "Day2 project.txt",
-        "chunk": "equests\n\n---\n\n# Upload Module\n\nEndpoint:\n\nPOST /upload\n\nResponsibilities:\n\n1. Receive file\n2. Valida"
-    },
-    {
-        "chunk_id": "38857cb7-0dbf-45cb-8ce4-6c31d8519dd3",
-        "document_name": "Day2 project.txt",
-        "chunk": "te extension\n3. Handle duplicate filenames\n4. Save file\n\n---\n\n## Allowed File Types\n\n```python\nallow"
-    },
-    {
-        "chunk_id": "c4ead90e-374a-4f25-be58-4b64ca1d8e84",
-        "document_name": "Day2 project.txt",
-        "chunk": "ed_extensions = [\".pdf\", \".csv\", \".txt\"]\n```\n\nSupported:\n\n* PDF\n* CSV\n* TXT\n\n---\n\n## Case-Insensitiv"
-    },
-    {
-        "chunk_id": "e42067ac-0ca2-4bce-8301-1cb9846bdac7",
-        "document_name": "Day2 project.txt",
-        "chunk": "e Validation\n\n```python\nfile.filename.lower()\n```\n\nExamples:\n\nreport.pdf\nreport.PDF\nreport.PdF\n\nAll "
-    },
-    {
-        "chunk_id": "8e46be68-fd2b-4e7d-a18d-b525b807251a",
-        "document_name": "Day2 project.txt",
-        "chunk": "accepted.\n\n---\n\n## HTTPException\n\n```python\nraise HTTPException(\n    status_code=400,\n    detail=\"Un"
-    },
-    {
-        "chunk_id": "044e9856-8473-44df-9df2-f806b560eaca",
-        "document_name": "Day2 project.txt",
-        "chunk": "supported file type\"\n)\n```\n\nCommon Status Codes:\n\n200 \u2192 Success\n\n400 \u2192 Bad Request\n\n404 \u2192 Not Found\n"
-    },
-    {
-        "chunk_id": "6952398e-15a8-408f-87d5-422d7799c3a4",
-        "document_name": "Day2 project.txt",
-        "chunk": "\n500 \u2192 Internal Server Error\n\n---\n\n# File Handling Concepts\n\n## Save File\n\n```python\nwith open(file_"
-    },
-    {
-        "chunk_id": "04273f26-c462-4b62-b9da-a98b9f118959",
-        "document_name": "Day2 project.txt",
-        "chunk": "path, \"wb\") as buffer:\n```\n\nw = write\n\nb = binary\n\nBinary mode supports PDF and other file formats.\n"
-    },
-    {
-        "chunk_id": "7cc2399c-8acd-42d7-9459-df53d49d00dd",
-        "document_name": "Day2 project.txt",
-        "chunk": "\n---\n\n## Read File\n\n```python\nwith open(file_path, \"r\", encoding=\"utf-8\")\n```\n\nUsed to read text fil"
-    },
-    {
-        "chunk_id": "3553428b-dbca-4c6b-8a1d-9579092b7379",
-        "document_name": "Day2 project.txt",
-        "chunk": "es.\n\nUTF-8 supports standard text encoding.\n\n---\n\n## Context Manager\n\n```python\nwith open(...)\n```\n\n"
-    },
-    {
-        "chunk_id": "42a0b4b0-b4e3-450e-9ac2-bc9626c428fa",
-        "document_name": "Day2 project.txt",
-        "chunk": "Automatically closes the file after operation completion.\n\n---\n\n# Duplicate File Handling\n\nProblem:\n"
-    },
-    {
-        "chunk_id": "41ec3ae9-3277-4050-b798-21ff90dcd731",
-        "document_name": "Day2 project.txt",
-        "chunk": "\nUploading the same file multiple times causes overwrite.\n\nSolution:\n\nLinkedList.txt\n\nLinkedList(1)."
-    },
-    {
-        "chunk_id": "4f76d367-90b8-4fd3-b7f2-34284343be17",
-        "document_name": "Day2 project.txt",
-        "chunk": "txt\n\nLinkedList(2).txt\n\nLinkedList(3).txt\n\nConcepts Used:\n\n```python\nos.path.exists()\nos.path.splite"
-    },
-    {
-        "chunk_id": "a17bfeca-58e4-4922-8ff0-4571ed1f8d8b",
-        "document_name": "Day2 project.txt",
-        "chunk": "xt()\nwhile loop\n```\n\n---\n\n# os.path.splitext()\n\nExample:\n\n```python\nname, extension = os.path.splite"
-    },
-    {
-        "chunk_id": "78904e12-11d9-419c-8fb1-1f9b6313b78d",
-        "document_name": "Day2 project.txt",
-        "chunk": "xt(\"LinkedList.txt\")\n```\n\nResult:\n\nname = LinkedList\n\nextension = .txt\n\nUsed for generating duplicat"
-    },
-    {
-        "chunk_id": "c3b5bf33-25e7-4ee8-bb6c-83683ae4e9e4",
-        "document_name": "Day2 project.txt",
-        "chunk": "e filenames.\n\n---\n\n# os.path.exists()\n\nExample:\n\n```python\nos.path.exists(path)\n```\n\nReturns:\n\nTrue "
-    },
-    {
-        "chunk_id": "2794384e-c160-46ee-8a63-4bf0301fe461",
-        "document_name": "Day2 project.txt",
-        "chunk": "\u2192 File exists\n\nFalse \u2192 File does not exist\n\n---\n\n# Current Project Structure\n\nproject/\n\n\u251c\u2500\u2500 app.py\n\n"
-    },
-    {
-        "chunk_id": "c1277d38-6201-4932-9201-df53fd0dd8c0",
-        "document_name": "Day2 project.txt",
-        "chunk": "\u251c\u2500\u2500 backend/\n\u2502   \u251c\u2500\u2500 routes/\n\u2502   \u2502   \u251c\u2500\u2500 upload.py\n\u2502   \u2502   \u2514\u2500\u2500 process.py\n\n\u251c\u2500\u2500 data/\n\u2502   \u251c\u2500\u2500 raw/\n\u2502 "
-    },
-    {
-        "chunk_id": "6d19c6a6-bf93-4b7a-9c26-fabf1a5c7e60",
-        "document_name": "Day2 project.txt",
-        "chunk": "  \u2514\u2500\u2500 processed/\n\n\u251c\u2500\u2500 frontend/\n\n\u251c\u2500\u2500 requirement\n\n\u251c\u2500\u2500 readme.md\n\n\u2514\u2500\u2500 .gitignore\n\n---\n\n# Document Pro"
-    },
-    {
-        "chunk_id": "b6c3a775-5042-4e03-9838-008c06831ba9",
-        "document_name": "Day2 project.txt",
-        "chunk": "cessing Module\n\nEndpoint:\n\nPOST /process-document\n\nCurrent Flow:\n\nFilename\n\u2193\nRead File\n\u2193\nReturn Cont"
-    },
-    {
-        "chunk_id": "e06c540e-63df-4fce-8504-1950216c6141",
-        "document_name": "Day2 project.txt",
-        "chunk": "ent\n\nFuture Flow:\n\nFilename\n\u2193\nRead File\n\u2193\nChunking\n\u2193\nEmbeddings\n\u2193\nFAISS\n\n---\n\n# Chunking (Introducti"
-    },
-    {
-        "chunk_id": "14f21841-c074-4323-840c-2d49fceb959b",
-        "document_name": "Day2 project.txt",
-        "chunk": "on)\n\nPurpose:\n\nLarge documents cannot be directly used for semantic search.\n\nExample:\n\n100-page PDF\n"
-    },
-    {
-        "chunk_id": "4c1da5a5-cfff-4670-92aa-8e64d8d00699",
-        "document_name": "Day2 project.txt",
-        "chunk": "\u2193\nSplit into chunks\n\u2193\nGenerate embeddings for each chunk\n\nExample Flow:\n\nDocument\n\u2193\nChunk 1\nChunk 2\n"
-    },
-    {
-        "chunk_id": "f52b21d5-c2d2-4659-8cc6-acf996323a10",
-        "document_name": "Day2 project.txt",
-        "chunk": "Chunk 3\n...\nChunk N\n\u2193\nEmbeddings\n\u2193\nFAISS\n\nChunking is one of the most important concepts in RAG syst"
-    },
-    {
-        "chunk_id": "92cc0359-c89f-446b-a428-22395286478b",
-        "document_name": "Day2 project.txt",
-        "chunk": "ems.\n\n---\n\n\n"
-    },
-    {
-        "chunk_id": "c34d16ef-3c45-449f-90e7-86db5f72a217",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "                                                         INTERVIEW QUESTION \n\nWhy do we chunk? \nans "
-    },
-    {
-        "chunk_id": "8665340c-9b32-465f-b90e-252aa1c9bbc1",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "-  LLMs and embedding models work better on smaller semantic units.\n\nLarge documents are split into "
-    },
-    {
-        "chunk_id": "f9b7c99f-9285-46a2-895d-64989b1a5e8b",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "chunks so that embeddings can be generated for each chunk independently, improving retrieval accurac"
-    },
-    {
-        "chunk_id": "ce063761-350c-4240-94d1-2ffa91ec5e26",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "y during semantic search.\n\nWhy not generate one embedding for the entire PDF?\nans - A single embeddi"
-    },
-    {
-        "chunk_id": "186904ec-756d-4391-bd89-3c9e65d38f31",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ng represents the whole document and loses fine-grained context.\n\nBy splitting the document into chu"
-    },
-    {
-        "chunk_id": "84b92905-3e07-4fe3-8345-5fbfa1d2b77e",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "nks and generating embeddings for each chunk, the retrieval system can find the most relevant sectio"
-    },
-    {
-        "chunk_id": "1f82f7a4-1210-4d4b-999c-9815240987fc",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "n of the document instead of returning the entire document.\nwrong ans - Because the document is larg"
-    },
-    {
-        "chunk_id": "7735154c-1577-4da5-afc4-ac18ca1b3c7a",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "e.\n\nWhy UploadFile instead of bytes?\nans- UploadFile streams the file and is memory efficient.\nbytes"
-    },
-    {
-        "chunk_id": "7e4ca914-2f11-4ba6-b779-d42f45bd24d2",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " loads the complete file into memory.\n\n\nWhy store metadata along with embeddings?\n\nEmbeddings are on"
-    },
-    {
-        "chunk_id": "a8ccd691-aa49-4215-b2c5-dd717fb3a60e",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ly vector representations. After similarity search, the system must retrieve the original chunk text"
-    },
-    {
-        "chunk_id": "cac6fd34-30ce-4fad-a4e6-1ee85d0f9658",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " and metadata associated with the matched vector. Therefore embeddings are stored together with refe"
-    },
-    {
-        "chunk_id": "87794706-ba40-4286-91e9-4bef01f42867",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "rences to the source content.\n\nWhy do we use: IndexFlatL2\n\nA normal list requires checking every emb"
-    },
-    {
-        "chunk_id": "d8d3b4e5-f389-40b8-9257-bad6c0b2b627",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "edding one by one.\n\nFAISS is optimized for fast similarity search on large vector datasets containin"
-    },
-    {
-        "chunk_id": "7036a3e4-3f10-4918-a062-7c96264d37be",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "g thousands or millions of embeddings.\n\nWhy maintain metadata with embeddings?\nans - Embeddings enab"
-    },
-    {
-        "chunk_id": "8d6bca3f-1bb2-483b-8c53-eb6799d860fc",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "le similarity search, while metadata helps retrieve the original chunk text, source document, page n"
-    },
-    {
-        "chunk_id": "52b79612-4fa8-4286-be1f-09f4530cd92d",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "umber, and other contextual information after retrieval.\n\n\nWhy not store chunk text inside FAISS?- \n"
-    },
-    {
-        "chunk_id": "6a8734ed-d61a-4578-a230-54ef502f7e63",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "FAISS is optimized for vector similarity search.\nDocument text and metadata are stored separately an"
-    },
-    {
-        "chunk_id": "67ce0b33-09ba-4e54-be00-2786e3b3b9ae",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "d retrieved using the vector index returned by FAISS.\n\nWhy store source filename?\nAfter retrieval, t"
-    },
-    {
-        "chunk_id": "779faed9-4e98-4ef2-a2e4-8b2fc6240162",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "he support engineer should know which document produced the answer.\n\n\nwhy chunk id \nInterview Answer"
-    },
-    {
-        "chunk_id": "9aab5c75-43dc-4aa5-a9d9-1830be6e99cd",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": ":\nWe introduced a unique chunk identifier to support future auditing,\nfeedback tracking, document up"
-    },
-    {
-        "chunk_id": "3baa02dc-19e9-48ac-afcb-916949f69888",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "dates, and database migration.\n\n\nWhy do we call:\n\nexisting_metadata = load_metadata() ->  To preserv"
-    },
-    {
-        "chunk_id": "09fd6d57-183c-4250-99a2-a4d78ae811f6",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "e previously processed documents and append new metadata instead of overwriting existing records.\n\nw"
-    },
-    {
-        "chunk_id": "5894cd1d-3a15-41ec-947c-f25c1cc61c9d",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "hy metadata - > FAISS returns vector indices, metadata maps those indices back to the original chunk"
-    },
-    {
-        "chunk_id": "abc273f5-ed91-40f7-a7d8-8e28e5964b60",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " text and source document.\n\nWhy UUID chunk_id? -> Stable identity for auditing, feedback tracking, d"
-    },
-    {
-        "chunk_id": "f9ee455a-0d97-42fd-b26e-8851cfa6d08d",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ocument updates, and future database integration.\n\nWhy One Global Index? -> Searches across all docu"
-    },
-    {
-        "chunk_id": "d65083af-8d58-4fa3-b092-b5f0637028aa",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ments in a single query, improving retrieval efficiency.\n\n\"r\" opens a file in read mode, allowing da"
-    },
-    {
-        "chunk_id": "afcb7895-fe15-4227-a099-e05eb2711699",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ta to be read from an existing file without modifying it.\n\nWhere are the embeddings currently stored"
-    },
-    {
-        "chunk_id": "c84bef16-04a9-4f25-8950-e24e6d823df5",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "?\nans - Only in RAM (memory).\nAfter API finishes, embeddings are lost.\n\n\nMetadata.json:\nStores chunk"
-    },
-    {
-        "chunk_id": "99c88815-72c8-4214-8517-a9663a1d6c68",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " text + document information\n\nFAISS:\nStores vectors only\n\nBoth together form the retrieval layer of "
-    },
-    {
-        "chunk_id": "edc4e6ca-3225-4ad8-96db-e59bc631fe8f",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "a RAG system.\n\nnotes imp ->\nFAISS is designed for vector search and scales efficiently to millions o"
-    },
-    {
-        "chunk_id": "2ee16c23-d721-4334-a619-10ea3a828eec",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "f embeddings.\n\nSearching similar vectors in FAISS is much faster than reading a JSON file and compar"
-    },
-    {
-        "chunk_id": "a2a5f8c6-d689-415f-a4fe-c0eb50e65068",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ing every embedding one by one.\n\nJSON is good for storing metadata, while FAISS is optimized for sto"
-    },
-    {
-        "chunk_id": "125198ec-be70-4301-883d-7ad3ae49b6b2",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ring and searching embeddings.\nMetadata is stored in JSON for readability and traceability, while em"
-    },
-    {
-        "chunk_id": "f763cebf-8434-4bb1-aafd-ab2294cc130a",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "beddings are stored in FAISS for efficient similarity search and scalability.\nthe embedding correspo"
-    },
-    {
-        "chunk_id": "d2e79f8a-2f06-412a-9bc8-117ac08e3f54",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "nding to that chunk is currently generated but not yet saved.\n\nIndexFlatL2 uses Euclidean distance ("
-    },
-    {
-        "chunk_id": "5c1aab76-e660-4473-a432-516572b80afe",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "L2 distance)\nfor similarity search.\n\n\nWhy don't we save embeddings in metadata.json?\nEmbeddings are "
-    },
-    {
-        "chunk_id": "e16a44e1-d764-4ca7-a7ef-21d69ddbd541",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "large numerical vectors.\nFAISS stores and searches vectors much more efficiently than JSON files.\nme"
-    },
-    {
-        "chunk_id": "5c70cac6-47e7-44d7-9b39-e629761706e0",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "tadata.json = Human-readable information\n\nFAISS = Vector database/search engine\n\nFAISS = Facebook AI"
-    },
-    {
-        "chunk_id": "b032deec-3eab-44fe-babb-c7adf22cb22b",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " Similarity Search\n\nPurpose:\nStore embeddings and perform fast vector similarity search.\n\nIndexFlatL"
-    },
-    {
-        "chunk_id": "3066120d-e23c-478b-acee-1b3aadc8155c",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "2:\nStores vectors and compares them using Euclidean distance.\n\nindex.add():\nAdds embeddings to the i"
-    },
-    {
-        "chunk_id": "4f298c0a-2c54-4b50-a330-1538657f5dc0",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ndex.\n\nindex.ntotal:\nReturns total vectors stored.\n\nHow are documents converted into vectors in your"
-    },
-    {
-        "chunk_id": "69970431-65fd-47b4-8cb1-4080de42f41f",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " RAG project?\nans -> We use Sentence Transformers (all-MiniLM-L6-v2), a BERT-based embedding model.\n"
-    },
-    {
-        "chunk_id": "863363bc-5322-49c9-a526-a14f512a9eef",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "\nThe model converts each document chunk into a dense semantic vector of 384 dimensions. These vector"
-    },
-    {
-        "chunk_id": "b25f388e-153e-42f1-9d35-b5d24a2bb4c0",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "s are then stored in a FAISS index for similarity search.\nSentence Transformers capture semantic mea"
-    },
-    {
-        "chunk_id": "ea8c8846-f56a-4525-bb64-82661b29fe74",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ning, not just vocabulary matching.\n\nSo words like:\n\nlogin\nsign in\nauthenticate\n\ncan produce similar"
-    },
-    {
-        "chunk_id": "8fca0f55-5b08-4bce-9cb0-f3cb61390569",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " vectors even though the exact words are different.\n\nTF-IDF relies mainly on word occurrence and fre"
-    },
-    {
-        "chunk_id": "9414cdc1-2db0-4023-90cb-4f5cf3caf1f8",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "quency, so if the vocabulary doesn't match, similarity may be low.\nEmbeddings capture contextual mea"
-    },
-    {
-        "chunk_id": "7f70c008-489e-447e-87ba-05290c373241",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ning of text, allowing semantic search, whereas TF-IDF relies on exact keyword overlap.\nfaiss.write_"
-    },
-    {
-        "chunk_id": "768ecadc-5677-4892-9e61-5c9e9a026964",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "index(index, path)\n\u2192 saves vector index to disk\n\nfaiss.read_index(path)\n\u2192 loads vector index from di"
-    },
-    {
-        "chunk_id": "ae1c6168-aec3-4715-a2ee-37d9a917b8ca",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "sk\n\nThis allows embeddings to persist across application restarts.\n\nWhy use hash instead of filename"
-    },
-    {
-        "chunk_id": "f5947685-40fc-479f-a69b-04761c192d76",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "?-> Filenames can change while content remains the same.\nHashing is based on the actual file content"
-    },
-    {
-        "chunk_id": "6378e65c-17da-401b-a9a1-73ddcfebeccb",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": ", allowing duplicate-content detection and efficient re-indexing.\n\n\nFAISS index is loaded from disk "
-    },
-    {
-        "chunk_id": "f7690ba2-11a5-4948-9c5d-ecca365c4a38",
-        "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "if it exists.\nNew embeddings are appended using index.add().\nThe updated index is persisted back to "
-    },
-    {
-        "chunk_id": "fe1d9ac1-3b21-4dbe-b8ac-167d840c4207",
+        "chunk_id": "7b2a8243-915d-4f18-9f58-b28b46256122",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "disk using faiss.write_index().\n\nWhy save metadata before FAISS? -> FAISS stores only vectors.\nMetad"
+        "chunk": "                                                         INTERVIEW QUESTION \n\nWhy do we chunk? \nans -  LLMs and embedding models work better on smaller semantic units.\n\nLarge documents are split into chunks so that embeddings can be generated for each chunk independently, improving retrieval accuracy during semantic search.\n\nWhy not generate one embedding for the entire PDF?\nans - A single embedding represents the whole document and loses fine-grained context.\n\nBy splitting the document into chu"
     },
     {
-        "chunk_id": "15c760da-cedb-4d00-87eb-2ec819cfc43c",
+        "chunk_id": "b1f02237-90b9-413c-9988-feca7a137914",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ata stores the original chunk text and document information.\nAfter FAISS returns a matching vector i"
+        "chunk": "ng represents the whole document and loses fine-grained context.\n\nBy splitting the document into chunks and generating embeddings for each chunk, the retrieval system can find the most relevant section of the document instead of returning the entire document.\nwrong ans - Because the document is large.\n\nWhy UploadFile instead of bytes?\nans- UploadFile streams the file and is memory efficient.\nbytes loads the complete file into memory.\n\n\nWhy store metadata along with embeddings?\n\nEmbeddings are on"
     },
     {
-        "chunk_id": "99fb84cd-9773-4689-a7f9-6f5b406ebb7b",
+        "chunk_id": "35a589c7-be13-4090-8560-4b65059b3f33",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ndex, metadata is used to retrieve the actual chunk content.\n\nWhat is Retrieval in RAG? \nans -> Retr"
+        "chunk": " loads the complete file into memory.\n\n\nWhy store metadata along with embeddings?\n\nEmbeddings are only vector representations. After similarity search, the system must retrieve the original chunk text and metadata associated with the matched vector. Therefore embeddings are stored together with references to the source content.\n\nWhy do we use: IndexFlatL2\n\nA normal list requires checking every embedding one by one.\n\nFAISS is optimized for fast similarity search on large vector datasets containin"
     },
     {
-        "chunk_id": "34c71514-24f6-430c-81d7-47293841af68",
+        "chunk_id": "5a886df5-a63e-4656-a487-ccbe4bb0377b",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ieval is the process of finding the most relevant chunks from the knowledge base using vector simila"
+        "chunk": "edding one by one.\n\nFAISS is optimized for fast similarity search on large vector datasets containing thousands or millions of embeddings.\n\nWhy maintain metadata with embeddings?\nans - Embeddings enable similarity search, while metadata helps retrieve the original chunk text, source document, page number, and other contextual information after retrieval.\n\n\nWhy not store chunk text inside FAISS?- \nFAISS is optimized for vector similarity search.\nDocument text and metadata are stored separately an"
     },
     {
-        "chunk_id": "c0e8b4ff-0ebc-4eb4-9614-a16f32e6ccf9",
+        "chunk_id": "1393d202-f12d-4bc9-964a-f6d2ae89d4ca",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "rity search before sending context to the LLM.\n\nWhat does FAISS return? \nFAISS returns vector indexe"
+        "chunk": "FAISS is optimized for vector similarity search.\nDocument text and metadata are stored separately and retrieved using the vector index returned by FAISS.\n\nWhy store source filename?\nAfter retrieval, the support engineer should know which document produced the answer.\n\n\nwhy chunk id \nInterview Answer:\nWe introduced a unique chunk identifier to support future auditing,\nfeedback tracking, document updates, and database migration.\n\n\nWhy do we call:\n\nexisting_metadata = load_metadata() ->  To preserv"
     },
     {
-        "chunk_id": "bbba0758-08c2-4746-87e2-4482e946ffb4",
+        "chunk_id": "df2596bd-e27c-4add-988b-6576190e4ca5",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "s and similarity scores.\nIt does not return the actual text chunks.\n\nWhy is metadata stored in the s"
+        "chunk": "dates, and database migration.\n\n\nWhy do we call:\n\nexisting_metadata = load_metadata() ->  To preserve previously processed documents and append new metadata instead of overwriting existing records.\n\nwhy metadata - > FAISS returns vector indices, metadata maps those indices back to the original chunk text and source document.\n\nWhy UUID chunk_id? -> Stable identity for auditing, feedback tracking, document updates, and future database integration.\n\nWhy One Global Index? -> Searches across all docu"
     },
     {
-        "chunk_id": "1ca62e65-8cc0-47a9-bf8a-2d42b83a6cfc",
+        "chunk_id": "e6f30305-fffd-4fed-a62a-163dcd252af1",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ame order as vectors?\nans -> The FAISS vector position and metadata position must match so that retr"
+        "chunk": "ocument updates, and future database integration.\n\nWhy One Global Index? -> Searches across all documents in a single query, improving retrieval efficiency.\n\n\"r\" opens a file in read mode, allowing data to be read from an existing file without modifying it.\n\nWhere are the embeddings currently stored?\nans - Only in RAM (memory).\nAfter API finishes, embeddings are lost.\n\n\nMetadata.json:\nStores chunk text + document information\n\nFAISS:\nStores vectors only\n\nBoth together form the retrieval layer of "
     },
     {
-        "chunk_id": "441989b7-6d1f-4ab8-b64b-fb30e161d845",
+        "chunk_id": "2685dab0-998f-4c88-a82b-ec30e582ea54",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ieved vector indexes can be mapped back to the original text chunks.\n\nWhy are embeddings converted t"
+        "chunk": " text + document information\n\nFAISS:\nStores vectors only\n\nBoth together form the retrieval layer of a RAG system.\n\nnotes imp ->\nFAISS is designed for vector search and scales efficiently to millions of embeddings.\n\nSearching similar vectors in FAISS is much faster than reading a JSON file and comparing every embedding one by one.\n\nJSON is good for storing metadata, while FAISS is optimized for storing and searching embeddings.\nMetadata is stored in JSON for readability and traceability, while em"
     },
     {
-        "chunk_id": "20bd471e-58a5-441a-ac59-42258434dc39",
+        "chunk_id": "0bbdb59b-39a1-46f0-94ce-a7b940cc72e4",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "o float32?\nans ->FAISS expects vectors in float32 format.\nUsing other data types may cause errors or"
+        "chunk": "ring and searching embeddings.\nMetadata is stored in JSON for readability and traceability, while embeddings are stored in FAISS for efficient similarity search and scalability.\nthe embedding corresponding to that chunk is currently generated but not yet saved.\n\nIndexFlatL2 uses Euclidean distance (L2 distance)\nfor similarity search.\n\n\nWhy don't we save embeddings in metadata.json?\nEmbeddings are large numerical vectors.\nFAISS stores and searches vectors much more efficiently than JSON files.\nme"
     },
     {
-        "chunk_id": "0d0f84b0-6fc6-430d-80a0-9ee0aa1723de",
+        "chunk_id": "a451e9ca-ecf2-4699-826b-aac3fdae0a71",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " inefficient memory usage.\n\nWhat is K in Top-K Search? -> K is the number of nearest neighbors retur"
+        "chunk": "large numerical vectors.\nFAISS stores and searches vectors much more efficiently than JSON files.\nmetadata.json = Human-readable information\n\nFAISS = Vector database/search engine\n\nFAISS = Facebook AI Similarity Search\n\nPurpose:\nStore embeddings and perform fast vector similarity search.\n\nIndexFlatL2:\nStores vectors and compares them using Euclidean distance.\n\nindex.add():\nAdds embeddings to the index.\n\nindex.ntotal:\nReturns total vectors stored.\n\nHow are documents converted into vectors in your"
     },
     {
-        "chunk_id": "42c85c08-5662-4ff1-80a6-ffa2b036560a",
+        "chunk_id": "60981ae9-cd22-4b43-99ab-6ba7b9bfec07",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "ned by the vector database.\n\nWhy do we use indices[0] -> FAISS returns results as a 2D array because"
+        "chunk": "ndex.\n\nindex.ntotal:\nReturns total vectors stored.\n\nHow are documents converted into vectors in your RAG project?\nans -> We use Sentence Transformers (all-MiniLM-L6-v2), a BERT-based embedding model.\n\nThe model converts each document chunk into a dense semantic vector of 384 dimensions. These vectors are then stored in a FAISS index for similarity search.\nSentence Transformers capture semantic meaning, not just vocabulary matching.\n\nSo words like:\n\nlogin\nsign in\nauthenticate\n\ncan produce similar"
     },
     {
-        "chunk_id": "fa0e9c98-9487-426c-986b-4c22d9310d85",
+        "chunk_id": "28cbc1a3-1753-45f4-8cc7-0a72a1c742a5",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": " it supports searching multiple queries at once.\n\nSince we search one query, the first row contains "
+        "chunk": "ning, not just vocabulary matching.\n\nSo words like:\n\nlogin\nsign in\nauthenticate\n\ncan produce similar vectors even though the exact words are different.\n\nTF-IDF relies mainly on word occurrence and frequency, so if the vocabulary doesn't match, similarity may be low.\nEmbeddings capture contextual meaning of text, allowing semantic search, whereas TF-IDF relies on exact keyword overlap.\nfaiss.write_index(index, path)\n\u2192 saves vector index to disk\n\nfaiss.read_index(path)\n\u2192 loads vector index from di"
     },
     {
-        "chunk_id": "05cb19f1-af0a-4a20-8966-1daedbb0c6c2",
+        "chunk_id": "441e1636-a42d-4a5c-8110-95c9fb1c40a4",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "our results.\n\nWhat happens if duplicate embeddings are stored in FAISS? -> FAISS will return multipl"
+        "chunk": "index(index, path)\n\u2192 saves vector index to disk\n\nfaiss.read_index(path)\n\u2192 loads vector index from disk\n\nThis allows embeddings to persist across application restarts.\n\nWhy use hash instead of filename?-> Filenames can change while content remains the same.\nHashing is based on the actual file content, allowing duplicate-content detection and efficient re-indexing.\n\n\nFAISS index is loaded from disk if it exists.\nNew embeddings are appended using index.add().\nThe updated index is persisted back to "
     },
     {
-        "chunk_id": "b7baddef-2632-4733-9d46-ca91d3e45c12",
+        "chunk_id": "93b33286-d4bc-495d-9d8c-68de94f2e09e",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "e highly similar results because the same content exists multiple times in the vector index.\n\nWhy no"
+        "chunk": "if it exists.\nNew embeddings are appended using index.add().\nThe updated index is persisted back to disk using faiss.write_index().\n\nWhy save metadata before FAISS? -> FAISS stores only vectors.\nMetadata stores the original chunk text and document information.\nAfter FAISS returns a matching vector index, metadata is used to retrieve the actual chunk content.\n\nWhat is Retrieval in RAG? \nans -> Retrieval is the process of finding the most relevant chunks from the knowledge base using vector simila"
     },
     {
-        "chunk_id": "438bd3df-531c-423a-a75a-0319d6c125be",
+        "chunk_id": "447746e5-7b20-4875-badc-e6fddf0b7e3d",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "t directly send all documents to the LLM? -> Documents may contain thousands of chunks and exceed th"
+        "chunk": "ieval is the process of finding the most relevant chunks from the knowledge base using vector similarity search before sending context to the LLM.\n\nWhat does FAISS return? \nFAISS returns vector indexes and similarity scores.\nIt does not return the actual text chunks.\n\nWhy is metadata stored in the same order as vectors?\nans -> The FAISS vector position and metadata position must match so that retrieved vector indexes can be mapped back to the original text chunks.\n\nWhy are embeddings converted t"
     },
     {
-        "chunk_id": "ea8b9f22-1428-44af-aaa2-89e0c44549c5",
+        "chunk_id": "0933d275-dbe7-4cae-8dd4-2ae5401292c3",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "e LLM context window. Retrieval fetches only the most relevant chunks, reducing cost and improving a"
+        "chunk": "ieved vector indexes can be mapped back to the original text chunks.\n\nWhy are embeddings converted to float32?\nans ->FAISS expects vectors in float32 format.\nUsing other data types may cause errors or inefficient memory usage.\n\nWhat is K in Top-K Search? -> K is the number of nearest neighbors returned by the vector database.\n\nWhy do we use indices[0] -> FAISS returns results as a 2D array because it supports searching multiple queries at once.\n\nSince we search one query, the first row contains "
     },
     {
-        "chunk_id": "3668387e-7d6a-4f83-8eca-076d482012f6",
+        "chunk_id": "032a3080-49cc-41ad-b92f-1bd8e46baf9d",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "nswer quality.\n\nQ: What is Context in RAG? -> Context is the collection of retrieved chunks passed t"
+        "chunk": " it supports searching multiple queries at once.\n\nSince we search one query, the first row contains our results.\n\nWhat happens if duplicate embeddings are stored in FAISS? -> FAISS will return multiple highly similar results because the same content exists multiple times in the vector index.\n\nWhy not directly send all documents to the LLM? -> Documents may contain thousands of chunks and exceed the LLM context window. Retrieval fetches only the most relevant chunks, reducing cost and improving a"
     },
     {
-        "chunk_id": "9349def6-9748-48d9-a39e-5b379b5f3ca6",
+        "chunk_id": "e144ba75-fac9-4d6d-b0e7-1848a99f793b",
         "document_name": "INTERVIEW QUESTION.txt",
-        "chunk": "o the LLM along with the user query to generate an informed response.\n"
+        "chunk": "e LLM context window. Retrieval fetches only the most relevant chunks, reducing cost and improving answer quality.\n\nQ: What is Context in RAG? -> Context is the collection of retrieved chunks passed to the LLM along with the user query to generate an informed response.\n"
     }
 ]

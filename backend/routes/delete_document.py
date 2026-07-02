@@ -11,6 +11,9 @@ from backend.services.vector_store import (
 )
 
 import os
+from backend.services.reindex_service import (
+    rebuild_index
+)
 
 router = APIRouter()
 
@@ -48,6 +51,9 @@ def delete_document(filename: str):
 
     save_metadata(updated_metadata)
 
+
+
+    rebuild_index()
     return {
         "message": "Document deleted successfully",
         "filename": filename
