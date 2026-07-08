@@ -1,0 +1,112 @@
+[
+    {
+        "question": "what is faiss",
+        "answer": "FAISS is a vector database/search engine, short for Facebook AI Similarity Search. Its purpose is to store embeddings and perform fast vector similarity search. It is designed for vector search and scales efficiently to millions of embeddings, optimized for fast similarity search on large vector datasets. FAISS stores vectors only and returns vector indexes and similarity scores. It forms part of the retrieval layer of a RAG system.",
+        "created_at": "2026-07-03T00:20:22.160146"
+    },
+    {
+        "question": "what is faiss",
+        "answer": "FAISS is Facebook AI Similarity Search, a vector database/search engine. It is designed for vector search and scales efficiently to millions of embeddings.\n\nIts purpose is to store embeddings and perform fast vector similarity search on large vector datasets. FAISS stores vectors only, not actual text chunks or metadata, and is optimized for this task. It returns vector indexes and similarity scores.",
+        "created_at": "2026-07-03T00:27:28.561859"
+    },
+    {
+        "question": "what is faiss",
+        "answer": "FAISS stands for Facebook AI Similarity Search. It is a vector database/search engine designed for vector search. Its purpose is to store embeddings and perform fast vector similarity search on large vector datasets containing thousands or millions of embeddings. FAISS is optimized for storing and searching embeddings and scales efficiently. It stores vectors only and returns vector indexes and similarity scores.",
+        "created_at": "2026-07-03T00:27:32.123851"
+    },
+    {
+        "question": "what is faiss",
+        "answer": "FAISS, which stands for Facebook AI Similarity Search, is a vector database/search engine. Its purpose is to store embeddings and perform fast vector similarity search. FAISS is optimized for vector search and scales efficiently to millions of embeddings. It is designed for fast similarity search on large vector datasets containing thousands or millions of embeddings, making it much faster than comparing every embedding one by one. FAISS stores vectors only and returns vector indexes and similarity scores. It forms part of the retrieval layer of a RAG system.",
+        "created_at": "2026-07-03T00:31:52.456658"
+    },
+    {
+        "question": "what is faiss",
+        "answer": "FAISS, or Facebook AI Similarity Search, is a vector database/search engine. Its purpose is to store embeddings (vectors) and perform fast vector similarity search.\n\nIt is designed for vector search and scales efficiently to millions of embeddings, being optimized for fast similarity search on large vector datasets. FAISS stores and searches vectors much more efficiently than JSON files.\n\nFAISS returns vector indexes and similarity scores. It is optimized for vector similarity search.",
+        "created_at": "2026-07-03T00:36:03.107214"
+    },
+    {
+        "question": "what is faiss",
+        "answer": "FAISS (Facebook AI Similarity Search) is a vector database/search engine. Its purpose is to store embeddings and perform fast vector similarity search.\n\nIt is designed for vector search and scales efficiently to millions of embeddings. FAISS is optimized for fast similarity search on large vector datasets, storing and searching vectors much more efficiently than JSON files. FAISS stores vectors only and returns vector indexes and similarity scores.",
+        "created_at": "2026-07-03T00:36:11.485879"
+    },
+    {
+        "question": "Why do we chunk? ",
+        "answer": "We chunk for the following reasons:\n\n1.  LLMs and embedding models work better on smaller semantic units.\n2.  Large documents are split into chunks so that embeddings can be generated for each chunk independently, improving retrieval accuracy during semantic search.\n3.  Splitting documents into chunks and generating embeddings for each allows the retrieval system to find the most relevant section of the document instead of returning the entire document, which loses fine-grained context.",
+        "created_at": "2026-07-08T16:06:32.281366"
+    },
+    {
+        "question": "Why do we chunk? ",
+        "answer": "We chunk for the following reasons:\n1.  LLMs and embedding models work better on smaller semantic units.\n2.  Large documents are split into chunks so that embeddings can be generated for each chunk independently, improving retrieval accuracy during semantic search.",
+        "created_at": "2026-07-08T16:10:15.969622"
+    },
+    {
+        "question": "Why do we chunk? ",
+        "answer": "1.  LLMs and embedding models work better on smaller semantic units.\n2.  Large documents are split into chunks so that embeddings can be generated for each chunk independently, improving retrieval accuracy during semantic search.",
+        "created_at": "2026-07-08T16:10:31.836302"
+    },
+    {
+        "question": "Why do we chunk? ",
+        "answer": "1. LLMs and embedding models work better on smaller semantic units.\n2. Large documents are split into chunks so that embeddings can be generated for each chunk independently, improving retrieval accuracy during semantic search.",
+        "created_at": "2026-07-08T16:10:39.019400"
+    },
+    {
+        "question": "who is mukul",
+        "answer": "The answer is unavailable in the provided context.",
+        "created_at": "2026-07-08T16:14:25.769549"
+    },
+    {
+        "question": "who is mukul",
+        "answer": "The answer is unavailable in the provided context.",
+        "created_at": "2026-07-08T16:15:39.356953"
+    },
+    {
+        "question": "who is mukul",
+        "answer": "The answer is unavailable in the provided context.",
+        "created_at": "2026-07-08T16:15:58.895699"
+    },
+    {
+        "question": "who is mukul",
+        "answer": "The answer is unavailable in the provided context.",
+        "created_at": "2026-07-08T16:18:22.661842"
+    },
+    {
+        "question": "what is backtracking ",
+        "answer": "I couldn't find this information in the uploaded documents.",
+        "created_at": "2026-07-08T16:45:46.518040"
+    },
+    {
+        "question": "what is backtracking ",
+        "answer": "I couldn't find this information in the uploaded documents.",
+        "created_at": "2026-07-08T16:47:34.751732"
+    },
+    {
+        "question": "what is chunk",
+        "answer": "I couldn't find this information in the uploaded documents.",
+        "created_at": "2026-07-08T23:01:15.914288"
+    },
+    {
+        "question": "Backtracking Pattern Recognition ",
+        "answer": "I couldn't find this information in the uploaded documents.",
+        "created_at": "2026-07-08T23:04:51.092937"
+    },
+    {
+        "question": "Backtracking Pattern Recognition ",
+        "answer": "I couldn't find this information in the uploaded documents.",
+        "created_at": "2026-07-08T23:06:04.023452"
+    },
+    {
+        "question": "Backtracking Pattern Recognition ",
+        "answer": "Think Backtracking when the question says:\n\n1.  Find all paths\n2.  Find all possible ways\n3.  Generate all combinations\n4.  Generate all subsets\n5.  Generate all permutations\n6.  Solve Maze\n7.  Solve N-Queens\n8.  Solve Sudoku\n9.  Word Search\n10. Try every possibility and return valid answers\n\nCore Idea:\n1.  Choose / Make Choice\n2.  Explore / Recurse\n3.  Undo (Backtrack) / Undo Choice\n\nMemory Trick:\nBacktracking = DFS + Undo",
+        "created_at": "2026-07-08T23:14:21.302295"
+    },
+    {
+        "question": "what is backtracking pattern",
+        "answer": "Think Backtracking when the question says:\n\n*   Find all paths\n*   Find all possible ways\n*   Generate all combinations\n*   Generate all subsets\n*   Generate all permutations\n*   Solve Maze\n*   Solve N-Queens\n*   Solve Sudoku\n*   Word Search\n*   Try every possibility and return valid answers\n\nThe core idea of backtracking is:\n1.  Choose / Make Choice\n2.  Explore / Recurse\n3.  Undo Choice / Backtrack",
+        "created_at": "2026-07-08T23:14:43.923700"
+    },
+    {
+        "question": "what is backtracking pattern",
+        "answer": "The backtracking pattern involves:\n\n1.  **Making a choice.**\n2.  **Exploring** the consequences of that choice (often using Depth-First Search or recursion).\n3.  **Undoing the choice** (backtracking) to revert the state.\n4.  **Trying the next choice.**\n\nYou can recognize backtracking when a question asks to:\n*   Find all paths or all possible ways.\n*   Generate all combinations, subsets, or permutations.\n*   Solve problems like Maze, N-Queens, Sudoku, or Word Search.\n*   Try every possibility and return valid answers.\n\nIt is essentially DFS combined with an undo operation. If shared state is modified, it must be restored before returning.",
+        "created_at": "2026-07-08T23:16:02.677338"
+    }
+]

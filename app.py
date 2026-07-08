@@ -15,7 +15,13 @@ from backend.routes.delete_document import (
     router as delete_document_router
 )
 
+from backend.routes.history import (
+    router as history_router
+)
 
+from backend.routes.delete_history import (
+    router as delete_history_router
+)
 
 
 
@@ -27,7 +33,8 @@ app.include_router(ask_router)
 app.include_router(documents_router)
 app.include_router(document_details_router)
 app.include_router( delete_document_router)
-
+app.include_router(history_router)
+app.include_router(delete_history_router)
 
 
 # @app.get("/")

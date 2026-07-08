@@ -1,35 +1,44 @@
-from backend.services.retrieval_service import (search_similar_chunks,get_context)  
-from backend.services.llm_service import (generate_answer)  
 from fastapi import APIRouter
+from datetime import datetime
+from backend.services.retrieval_service import (
+    search_similar_chunks,
+    get_context
+)
+
+from backend.services.llm_service import (
+    generate_answer
+)
+
+from backend.services.history_service import (
+    load_history,
+    save_history
+)
+from backend.services.confidence_service import (
+    calculate_confidence
+)
 
 router = APIRouter()
 
 
 @router.get("/ask")
-def ask_question(query: str):
+def ask_question(
+    query: str,
+    document_name: str | None = None
+):
 
-    results = search_similar_chunks(
-        query
-    )
-    print("========== RESULTS ==========")
+    results, distances = search_similar_chunks(query, document_name)
 
-    for result in results:
-        print(result)
-        print("=============================")
+    context = get_context(results)
 
-
-
-
-    context = get_context(
-        results
-    )
-    print("========== CONTEXT ==========")
-    print(context)
-    print("=============================")
     answer = generate_answer(
-    query,
-    context
+        query,
+        context
+    )
+
+    confidence, average_distance = calculate_confidence(
+    distances
 )
+    
 
     sources = []
 
@@ -39,12 +48,24 @@ def ask_question(query: str):
 
             sources.append(
                 result["document_name"]
-        )
+            )
+
+    history = load_history()
+
+    history.append(
+        {
+            "question": query,
+            "answer": answer,
+            "created_at": datetime.now().isoformat()
+        }
+    )
+
+    save_history(history)
 
     return {
     "question": query,
     "answer": answer,
-    "sources": sources
+    "sources": sources,
+    "confidence": confidence,
+    "average_distance": average_distance
 }
-
-

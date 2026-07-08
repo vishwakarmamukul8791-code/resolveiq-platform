@@ -3,7 +3,10 @@ from backend.services.faiss_service import load_faiss_index
 from backend.services.vector_store import load_metadata
 from backend.config import TOP_K
 
-def search_similar_chunks(query):
+def search_similar_chunks(
+    query,
+    document_name=None
+):
 
     query_embedding = generate_embeddings(
         [query]
@@ -22,14 +25,20 @@ def search_similar_chunks(query):
 
     for idx in indices[0]:
 
-        if idx < len(metadata):
+        if idx >= len(metadata):
+            continue
 
-            results.append(
-                metadata[idx]
-            )
+        chunk = metadata[idx]
 
-    return results
+        if document_name is not None:
 
+            if chunk["document_name"] != document_name:
+                continue
+
+        results.append(chunk)
+        
+
+    return results, distances[0]
 
 def get_context(results):
 

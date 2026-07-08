@@ -1,0 +1,69 @@
+BackTracking 
+
+-> Backtracking means:
+
+Make a choice → Explore → Undo the choice → Try the next choice.
+
+
+Backtracking Pattern Recognition (Short Notes)
+
+Think Backtracking when the question says:
+
+Find all paths
+Find all possible ways
+Generate all combinations
+Generate all subsets
+Generate all permutations
+Solve Maze
+Solve N-Queens
+Solve Sudoku
+Word Search
+Try every possibility and return valid answers
+Core Idea
+Choose
+Explore
+Undo (Backtrack)
+
+or
+
+Make Choice
+Recurse
+Undo Choice
+Universal Template
+Make choice
+
+dfs(...)
+
+Undo choice
+
+Examples:
+
+path.add(x);
+dfs();
+path.remove(path.size()-1);
+visited[r][c] = true;
+dfs();
+visited[r][c] = false;
+4 Questions to Identify Backtracking
+What is my current state?
+What choices do I have?
+When do I stop?
+What do I undo?
+Memory Trick
+Backtracking = DFS + Undo
+Recursion Tree
+One root-to-leaf path = One solution
+DFS explores each branch exactly once
+Golden Rule
+If you modify shared state,
+restore it before returning.
+
+Examples:
+
+visited[][]
+path list
+board
+set/map
+StringBuilder
+
+Must be undone during backtracking.

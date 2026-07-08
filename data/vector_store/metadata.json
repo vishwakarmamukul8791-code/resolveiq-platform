@@ -88,5 +88,20 @@
         "chunk_id": "e144ba75-fac9-4d6d-b0e7-1848a99f793b",
         "document_name": "INTERVIEW QUESTION.txt",
         "chunk": "e LLM context window. Retrieval fetches only the most relevant chunks, reducing cost and improving answer quality.\n\nQ: What is Context in RAG? -> Context is the collection of retrieved chunks passed to the LLM along with the user query to generate an informed response.\n"
+    },
+    {
+        "chunk_id": "442784d1-6b63-4b05-83a1-cdae40d86098",
+        "document_name": "BackTracking.txt",
+        "chunk": "BackTracking \n\n-> Backtracking means:\n\nMake a choice \u2192 Explore \u2192 Undo the choice \u2192 Try the next choice.\n\n\nBacktracking Pattern Recognition (Short Notes)\n\nThink Backtracking when the question says:\n\nFind all paths\nFind all possible ways\nGenerate all combinations\nGenerate all subsets\nGenerate all permutations\nSolve Maze\nSolve N-Queens\nSolve Sudoku\nWord Search\nTry every possibility and return valid answers\nCore Idea\nChoose\nExplore\nUndo (Backtrack)\n\nor\n\nMake Choice\nRecurse\nUndo Choice\nUniversal Temp"
+    },
+    {
+        "chunk_id": "f3e56714-9cd6-427e-9c7b-b27341b51c32",
+        "document_name": "BackTracking.txt",
+        "chunk": "nswers\nCore Idea\nChoose\nExplore\nUndo (Backtrack)\n\nor\n\nMake Choice\nRecurse\nUndo Choice\nUniversal Template\nMake choice\n\ndfs(...)\n\nUndo choice\n\nExamples:\n\npath.add(x);\ndfs();\npath.remove(path.size()-1);\nvisited[r][c] = true;\ndfs();\nvisited[r][c] = false;\n4 Questions to Identify Backtracking\nWhat is my current state?\nWhat choices do I have?\nWhen do I stop?\nWhat do I undo?\nMemory Trick\nBacktracking = DFS + Undo\nRecursion Tree\nOne root-to-leaf path = One solution\nDFS explores each branch exactly once\n"
+    },
+    {
+        "chunk_id": "019b20cd-c551-4d0f-8e59-e3494f780afb",
+        "document_name": "BackTracking.txt",
+        "chunk": "FS + Undo\nRecursion Tree\nOne root-to-leaf path = One solution\nDFS explores each branch exactly once\nGolden Rule\nIf you modify shared state,\nrestore it before returning.\n\nExamples:\n\nvisited[][]\npath list\nboard\nset/map\nStringBuilder\n\nMust be undone during backtracking."
     }
 ]
