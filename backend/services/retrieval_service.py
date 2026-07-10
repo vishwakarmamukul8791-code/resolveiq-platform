@@ -23,7 +23,7 @@ def search_similar_chunks(
 
     results = []
 
-    for idx in indices[0]:
+    for idx, distance in zip(indices[0], distances[0]):
 
         if idx >= len(metadata):
             continue
@@ -31,14 +31,15 @@ def search_similar_chunks(
         chunk = metadata[idx]
 
         if document_name is not None:
-
             if chunk["document_name"] != document_name:
                 continue
 
-        results.append(chunk)
-        
+        result = chunk.copy()
+        result["distance"] = float(distance)
 
-    return results, distances[0]
+        results.append(result)
+
+    return results
 
 def get_context(results):
 

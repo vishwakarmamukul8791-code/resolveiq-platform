@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from datetime import datetime
+from backend.services.logging_service import log_info
 from backend.services.retrieval_service import (
     search_similar_chunks,
     get_context
@@ -16,43 +17,51 @@ from backend.services.history_service import (
 from backend.services.confidence_service import (
     calculate_confidence
 )
+from fastapi import HTTPException
+from backend.services.logging_service import log_error
+
 
 router = APIRouter()
 
 
 @router.get("/ask")
+
 def ask_question(
+    
     query: str,
     document_name: str | None = None
 ):
+    try:
 
-    results, distances = search_similar_chunks(query, document_name)
+        log_info(f"Question Received: {query}")
 
-    context = get_context(results)
+        results, distances = search_similar_chunks(query, document_name)
 
-    answer = generate_answer(
-        query,
-        context
-    )
+        context = get_context(results)
 
-    confidence, average_distance = calculate_confidence(
-    distances
-)
+        answer = generate_answer(
+            query,
+            context
+        )
+
+        confidence, average_distance = calculate_confidence(
+            distances
+        )
     
 
-    sources = []
+        sources = []
 
-    for result in results:
+        for result in results:
 
-        if result["document_name"] not in sources:
+            if result["document_name"] not in sources:
 
-            sources.append(
-                result["document_name"]
+                sources.append(
+                    result["document_name"]
             )
 
-    history = load_history()
+        history = load_history()
 
-    history.append(
+        history.append(
         {
             "question": query,
             "answer": answer,
@@ -60,12 +69,21 @@ def ask_question(
         }
     )
 
-    save_history(history)
+        save_history(history)
+        log_info("Answer generated successfully.")
 
-    return {
+        return {
     "question": query,
     "answer": answer,
     "sources": sources,
     "confidence": confidence,
     "average_distance": average_distance
-}
+   }
+    except Exception as e:
+
+        log_error(str(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate answer."
+        )

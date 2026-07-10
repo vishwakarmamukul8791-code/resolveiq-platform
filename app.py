@@ -22,6 +22,10 @@ from backend.routes.history import (
 from backend.routes.delete_history import (
     router as delete_history_router
 )
+from backend.routes.stats import (
+    router as stats_router
+)
+from backend.routes.health import router as health_router
 
 
 
@@ -35,6 +39,9 @@ app.include_router(document_details_router)
 app.include_router( delete_document_router)
 app.include_router(history_router)
 app.include_router(delete_history_router)
+app.include_router(stats_router)
+app.include_router(health_router)
+
 
 
 # @app.get("/")

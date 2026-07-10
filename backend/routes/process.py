@@ -18,6 +18,10 @@ from backend.config import (
     CHUNK_SIZE,
     CHUNK_OVERLAP
 )
+from backend.services.logging_service import (
+    log_info,
+    log_error
+)
 
 import os
 import uuid
@@ -57,80 +61,83 @@ def process_document(filename: str):
             detail="File not found"
         )
 
-    # Duplicate check using hash
-    file_hash = generate_file_hash(
-        file_path
-    )
+    try:
 
-    registry = load_registry()
+        # Duplicate check using hash
+        file_hash = generate_file_hash(file_path)
 
-    for document in registry:
+        registry = load_registry()
 
-        if document["hash"] == file_hash:
+        for document in registry:
 
-            return {
-                "message": "Document already exists",
-                "filename": filename
-            }
+            if document["hash"] == file_hash:
 
-    # Read file
-    with open(
-        file_path,
-        "r",
-        encoding="utf-8"
-    ) as file:
+                return {
+                    "message": "Document already exists",
+                    "filename": filename
+                }
 
-        content = file.read()
+        # Read file
+        with open(
+            file_path,
+            "r",
+            encoding="utf-8"
+        ) as file:
 
-    # Chunking
-    chunks = create_chunks(content)
+            content = file.read()
 
-    if not chunks:
-        raise HTTPException(
-            status_code=400,
-            detail="No content found in file"
-        )
+        # Chunking
+        chunks = create_chunks(content)
 
-    # Load existing metadata
-    existing_metadata = load_metadata()
+        if not chunks:
+            raise HTTPException(
+                status_code=400,
+                detail="No content found in file"
+            )
 
-    # Save chunk metadata
-    for chunk in chunks:
+        # Load existing metadata
+        existing_metadata = load_metadata()
 
-        existing_metadata.append({
-            "chunk_id": str(uuid.uuid4()),
+        # Save chunk metadata
+        for chunk in chunks:
+
+            existing_metadata.append({
+                "chunk_id": str(uuid.uuid4()),
+                "document_name": filename,
+                "chunk": chunk
+            })
+
+        save_metadata(existing_metadata)
+
+        # Generate embeddings
+        embeddings = generate_embeddings(chunks)
+
+        # Save vectors to FAISS
+        index = add_embeddings_to_index(embeddings)
+
+        # Save hash to registry
+        registry.append({
             "document_name": filename,
-            "chunk": chunk
+            "hash": file_hash
         })
 
-    save_metadata(
-        existing_metadata
-    )
+        save_registry(registry)
 
-    # Generate embeddings
-    embeddings = generate_embeddings(
-        chunks
-    )
+        log_info(f"Document processed successfully: {filename}")
 
-    # Save vectors to FAISS
-    index = add_embeddings_to_index(
-        embeddings
-    )
+        return {
+            "filename": filename,
+            "total_chunks": len(chunks),
+            "embedding_dimension": len(embeddings[0]),
+            "metadata_records": len(existing_metadata),
+            "total_vectors": index.ntotal
+        }
 
-    # Save hash to registry
-    registry.append({
-        "document_name": filename,
-        "hash": file_hash
-    })
+    except Exception as e:
 
-    save_registry(
-        registry
-    )
+        log_error(str(e))
 
-    return {
-        "filename": filename,
-        "total_chunks": len(chunks),
-        "embedding_dimension": len(embeddings[0]),
-        "metadata_records": len(existing_metadata),
-        "total_vectors": index.ntotal
-    }
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process document."
+        )

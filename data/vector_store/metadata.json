@@ -103,5 +103,55 @@
         "chunk_id": "019b20cd-c551-4d0f-8e59-e3494f780afb",
         "document_name": "BackTracking.txt",
         "chunk": "FS + Undo\nRecursion Tree\nOne root-to-leaf path = One solution\nDFS explores each branch exactly once\nGolden Rule\nIf you modify shared state,\nrestore it before returning.\n\nExamples:\n\nvisited[][]\npath list\nboard\nset/map\nStringBuilder\n\nMust be undone during backtracking."
+    },
+    {
+        "chunk_id": "0fb5aaaa-bbe4-4dd6-ba22-fa991d4f9a61",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "==================================================\nIncident ID: INC-1001\nCategory: Email Service\nPriority: High\nStatus: Resolved\n\nIssue:\nUsers were unable to send or receive emails through Microsoft Outlook.\n\nRoot Cause:\nThe Exchange Transport Service stopped unexpectedly after a recent Windows security update.\n\nResolution:\n1. Restarted the Microsoft Exchange Transport Service.\n2. Verified service dependencies.\n3. Checked mail queue and confirmed message delivery.\n4. Monitored service for 30 min"
+    },
+    {
+        "chunk_id": "a4526b5a-3926-40c9-a874-fd7cb4fc6bd7",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": " dependencies.\n3. Checked mail queue and confirmed message delivery.\n4. Monitored service for 30 minutes.\n\nKeywords:\nOutlook, Exchange Server, Email, Transport Service\n\n--------------------------------------------------\n\nIncident ID: INC-1002\nCategory: VPN\nPriority: Medium\nStatus: Resolved\n\nIssue:\nMultiple remote users failed to establish VPN connections.\n\nRoot Cause:\nThe VPN gateway certificate had expired.\n\nResolution:\n1. Renewed the SSL certificate.\n2. Updated the VPN gateway configuration.\n3"
+    },
+    {
+        "chunk_id": "8800fab1-fa3e-4492-9df7-76cbe1c52bf7",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "ad expired.\n\nResolution:\n1. Renewed the SSL certificate.\n2. Updated the VPN gateway configuration.\n3. Restarted VPN services.\n4. Users successfully reconnected.\n\nKeywords:\nVPN, SSL Certificate, Remote Access\n\n--------------------------------------------------\n\nIncident ID: INC-1003\nCategory: Database\nPriority: Critical\nStatus: Resolved\n\nIssue:\nCustomer application experienced slow response times.\n\nRoot Cause:\nDatabase CPU utilization exceeded 95% due to a missing index.\n\nResolution:\n1. Identifie"
+    },
+    {
+        "chunk_id": "ce40a473-ec3a-450d-b8a2-94d175f83210",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "\nRoot Cause:\nDatabase CPU utilization exceeded 95% due to a missing index.\n\nResolution:\n1. Identified slow SQL queries.\n2. Created an index on the Orders table.\n3. Updated database statistics.\n4. Performance returned to normal.\n\nKeywords:\nSQL Server, Database, Performance, Index\n\n--------------------------------------------------\n\nIncident ID: INC-1004\nCategory: Active Directory\nPriority: Medium\nStatus: Resolved\n\nIssue:\nNew employees were unable to log in to their systems.\n\nRoot Cause:\nUser acco"
+    },
+    {
+        "chunk_id": "57d4ec54-ef6a-4a69-a369-e35a79bea781",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "tatus: Resolved\n\nIssue:\nNew employees were unable to log in to their systems.\n\nRoot Cause:\nUser accounts were created but not added to the required security groups.\n\nResolution:\n1. Added users to the appropriate Active Directory groups.\n2. Forced group policy update.\n3. Verified successful authentication.\n\nKeywords:\nActive Directory, Authentication, Login\n\n--------------------------------------------------\n\nIncident ID: INC-1005\nCategory: Application\nPriority: High\nStatus: Resolved\n\nIssue:\nThe c"
+    },
+    {
+        "chunk_id": "a85bb9d4-3f77-4a84-94e0-83002afad9fa",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "---------\n\nIncident ID: INC-1005\nCategory: Application\nPriority: High\nStatus: Resolved\n\nIssue:\nThe customer portal returned HTTP 500 Internal Server Error.\n\nRoot Cause:\nA database connection string was incorrectly configured after deployment.\n\nResolution:\n1. Corrected the database connection string.\n2. Restarted the application service.\n3. Verified application health.\n4. Confirmed successful user access.\n\nKeywords:\nHTTP 500, Application, Database Connection\n\n-------------------------------------"
+    },
+    {
+        "chunk_id": "d52fd82b-ff74-49db-87a9-eab21a4ce53c",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "access.\n\nKeywords:\nHTTP 500, Application, Database Connection\n\n--------------------------------------------------\n\nIncident ID: INC-1006\nCategory: Network\nPriority: High\nStatus: Resolved\n\nIssue:\nUsers reported intermittent network connectivity.\n\nRoot Cause:\nA faulty switch caused packet loss.\n\nResolution:\n1. Replaced the faulty network switch.\n2. Verified interface health.\n3. Performed connectivity tests.\n4. Monitored network stability.\n\nKeywords:\nNetwork, Switch, Packet Loss\n\n------------------"
+    },
+    {
+        "chunk_id": "20881d30-ac32-4bf9-8f30-4cb9e7c37a84",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "y tests.\n4. Monitored network stability.\n\nKeywords:\nNetwork, Switch, Packet Loss\n\n--------------------------------------------------\n\nIncident ID: INC-1007\nCategory: Storage\nPriority: High\nStatus: Resolved\n\nIssue:\nApplication logs could not be written to disk.\n\nRoot Cause:\nThe disk reached 100% capacity due to accumulated log files.\n\nResolution:\n1. Archived old log files.\n2. Deleted temporary files.\n3. Increased disk capacity.\n4. Configured automated log rotation.\n\nKeywords:\nDisk Space, Storage,"
+    },
+    {
+        "chunk_id": "77b32b01-306b-48e6-a5a2-71c0852de9b9",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "s.\n3. Increased disk capacity.\n4. Configured automated log rotation.\n\nKeywords:\nDisk Space, Storage, Log Rotation\n\n--------------------------------------------------\n\nIncident ID: INC-1008\nCategory: Web Server\nPriority: High\nStatus: Resolved\n\nIssue:\nUsers received a 503 Service Unavailable error.\n\nRoot Cause:\nThe web server service stopped because of insufficient memory.\n\nResolution:\n1. Restarted the web server.\n2. Increased available memory.\n3. Optimized application memory usage.\n4. Monitored s"
+    },
+    {
+        "chunk_id": "253f8dcc-5fc7-4bfb-a92d-8c69f4c02c00",
+        "document_name": "Sample_Incidents.txt",
+        "chunk": "the web server.\n2. Increased available memory.\n3. Optimized application memory usage.\n4. Monitored server performance.\n\nKeywords:\nHTTP 503, Web Server, Memory"
     }
 ]

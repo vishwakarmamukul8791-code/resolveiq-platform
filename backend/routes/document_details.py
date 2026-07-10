@@ -1,7 +1,7 @@
-from fastapi import APIRouter
-from backend.services.vector_store import (
-    load_metadata
-)
+import os
+
+from fastapi import APIRouter, HTTPException
+from backend.services.vector_store import load_metadata
 
 router = APIRouter()
 
@@ -15,11 +15,22 @@ def get_document(filename: str):
 
     for record in metadata:
 
-        if record["document_name"] == filename:
+        stored_filename = record["document_name"]
+
+        if (
+            stored_filename == filename or
+            os.path.splitext(stored_filename)[0] == filename
+        ):
             chunks.append(record)
 
+    if not chunks:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found."
+        )
+
     return {
-        "document_name": filename,
+        "document_name": chunks[0]["document_name"],
         "total_chunks": len(chunks),
         "chunks": chunks
     }

@@ -1,6 +1,7 @@
 import json
 import os
 
+
 REGISTRY_PATH = (
     "data/document_registry.json"
 )
