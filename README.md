@@ -105,19 +105,63 @@ This project addresses the problem by implementing a Retrieval-Augmented Generat
 
 ## Project Structure
 
-```text
-backend/
-├── routes/
-├── services/
-├── utils/
-├── models/
-├── config/
-├── data/
-├── logs/
-└── main.py
 ```
-
----
+.
+│── .env
+│── .env.example
+│── .gitignore
+│── app.py
+│── README.md
+│── requirements.txt
+│
+├── backend
+│   ├── routes
+│   │   ├── ask.py
+│   │   ├── delete_document.py
+│   │   ├── delete_history.py
+│   │   ├── documents.py
+│   │   ├── document_details.py
+│   │   ├── health.py
+│   │   ├── history.py
+│   │   ├── logging.py
+│   │   ├── process.py
+│   │   ├── search.py
+│   │   ├── stats.py
+│   │   └── upload.py
+│   │
+│   ├── services
+│   │   ├── confidence_service.py
+│   │   ├── document_registry.py
+│   │   ├── embedding_service.py
+│   │   ├── faiss_service.py
+│   │   ├── hash_service.py
+│   │   ├── health_service.py
+│   │   ├── history_service.py
+│   │   ├── llm_service.py
+│   │   ├── logging_service.py
+│   │   ├── reindex_service.py
+│   │   ├── retrieval_service.py
+│   │   ├── stats_service.py
+│   │   └── vector_store.py
+│   │
+│   ├── config.py
+│   └── logger.py
+│
+├── data
+│   ├── document_registry.json
+│   ├── history
+│   │   └── chat_history.json
+│   ├── raw
+│   │   └── Sample_Incidents.txt
+│   └── vector_store
+│       ├── index.faiss
+│       └── metadata.json
+│
+└── frontend
+    ├── index.html
+    ├── script.js
+    └── style.css
+```
 
 ## API Endpoints
 
