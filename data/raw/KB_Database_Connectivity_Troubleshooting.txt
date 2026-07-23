@@ -1,0 +1,34 @@
+Knowledge Base Article: Database Connectivity Troubleshooting Guide
+Document Type: Knowledge Base
+Category: Database
+
+Overview
+
+This article covers general troubleshooting steps for database connectivity failures across the organization's supported database platforms: Oracle, PostgreSQL, and SQL Server. Use this guide as a first-response reference before escalating to the database administration team.
+
+Common Symptoms
+
+Database connectivity issues typically present as one of the following: application startup failures, intermittent timeouts under load, complete inability to establish a connection, or authentication failures during the connection handshake. The specific error message returned usually points to a distinct root cause category.
+
+Oracle Connection Failures
+
+Oracle connection issues most commonly surface as TNS-related errors. A "could not resolve the connect identifier" error usually indicates a missing or incorrect entry in the tnsnames.ora configuration file, often following a database migration or environment change. Engineers should verify the connect descriptor matches what the DBA team has published for the target environment, and confirm the TNS_ADMIN environment variable points to the correct configuration directory.
+
+PostgreSQL Connection Failures
+
+PostgreSQL connection refusals are frequently caused by network-level restrictions rather than the database itself being down. Two configuration files are the most common culprits: postgresql.conf, which controls which network interfaces the server listens on, and pg_hba.conf, which controls which hosts are permitted to connect and using what authentication method. When a connection is refused rather than timing out, check whether the server is bound to localhost only, and whether the connecting host's subnet is present in pg_hba.conf.
+
+SQL Server Connection Failures
+
+SQL Server connectivity problems are often related to named instance resolution or firewall rules blocking the SQL Server Browser service on UDP port 1434. Verify that TCP/IP is enabled in SQL Server Configuration Manager and that the target port is open between the application server and the database host.
+
+General Diagnostic Steps
+
+1. Confirm the database service is actually running on the host.
+2. Test raw network connectivity to the database port using a tool appropriate to the platform (tnsping for Oracle, psql or telnet for PostgreSQL, sqlcmd for SQL Server).
+3. Review recent configuration or infrastructure changes, since most connectivity incidents follow a recent migration, deployment, or network change rather than spontaneous failure.
+4. Check connection pool exhaustion on the application side before assuming the database itself is unreachable — a fully exhausted pool can present identically to a genuine connectivity failure.
+
+Escalation
+
+If basic connectivity is confirmed but the application still cannot connect, escalate to the DBA team with the exact error message, the affected environment, and a timestamp of when the issue began.

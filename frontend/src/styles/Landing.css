@@ -1,0 +1,34 @@
+body {
+    background: #f8fafc;
+}
+
+.landing-container {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 48px;
+
+    padding: 20px 68px 0;
+
+    align-items: start;
+}
+
+.landing-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.landing-right {
+    padding-top: 0;
+}
+
+@media (max-width: 900px) {
+
+    .landing-container {
+        grid-template-columns: 1fr;
+        padding: 30px 20px 0;
+    }
+
+    .landing-right {
+        padding-top: 0;
+    }
+}

@@ -1,0 +1,262 @@
+==================================================
+Incident ID: INC-1009
+Category: Database
+Priority: Critical
+Status: Resolved
+
+Issue:
+Application server logs showed repeated ORA-12154: TNS could not resolve the connect identifier specified when attempting to connect to the Oracle database.
+
+Root Cause:
+The tnsnames.ora file on the application server was missing the entry for the newly migrated database instance after a server migration.
+
+Resolution:
+1. Located the correct connect descriptor from the DBA team.
+2. Added the missing entry to tnsnames.ora.
+3. Restarted the application connection pool.
+4. Verified successful connection using tnsping.
+
+Keywords:
+ORA-12154, TNS, Oracle, Database Connection, tnsnames.ora
+
+--------------------------------------------------
+
+Incident ID: INC-1010
+Category: Database
+Priority: High
+Status: Resolved
+
+Issue:
+Application threw SQLSTATE[08001] [2002] Connection refused when attempting to reach the PostgreSQL database from the application tier.
+
+Root Cause:
+The PostgreSQL service was bound to localhost only after a configuration change, blocking connections from the application server's IP.
+
+Resolution:
+1. Updated postgresql.conf to listen on the correct network interface.
+2. Updated pg_hba.conf to allow the application server's subnet.
+3. Restarted the PostgreSQL service.
+4. Confirmed connectivity using psql from the application server.
+
+Keywords:
+SQLSTATE 08001, PostgreSQL, Connection Refused, pg_hba.conf
+
+--------------------------------------------------
+
+Incident ID: INC-1011
+Category: Application
+Priority: High
+Status: Resolved
+
+Issue:
+Node.js backend service crashed repeatedly with ECONNREFUSED errors when calling the internal payments microservice.
+
+Root Cause:
+The payments microservice pod had been scaled down to zero replicas during an unrelated deployment, so no instance was available to accept connections.
+
+Resolution:
+1. Scaled the payments microservice deployment back to 3 replicas.
+2. Verified pod readiness probes were passing.
+3. Confirmed the backend service reconnected automatically.
+4. Added a minimum replica alert to prevent recurrence.
+
+Keywords:
+ECONNREFUSED, Node.js, Microservice, Kubernetes, Payments
+
+--------------------------------------------------
+
+Incident ID: INC-1012
+Category: Kubernetes
+Priority: Critical
+Status: Resolved
+
+Issue:
+The order-processing pod entered a CrashLoopBackOff state and was unable to stay running for more than a few seconds.
+
+Root Cause:
+A recent config map change removed an environment variable the application required at startup, causing an immediate fatal exception on boot.
+
+Resolution:
+1. Reviewed pod logs using kubectl logs with the --previous flag.
+2. Identified the missing environment variable.
+3. Restored the variable in the config map.
+4. Rolled out the deployment and confirmed pod stability.
+
+Keywords:
+CrashLoopBackOff, Kubernetes, ConfigMap, Pod, Order Processing
+
+--------------------------------------------------
+
+Incident ID: INC-1013
+Category: API Gateway
+Priority: Medium
+Status: Resolved
+
+Issue:
+External partners reported receiving HTTP 429 Too Many Requests errors when calling the public API.
+
+Root Cause:
+A partner's integration was retrying failed requests in a tight loop without backoff, exceeding the configured rate limit of 100 requests per minute.
+
+Resolution:
+1. Identified the offending client using API gateway logs.
+2. Contacted the partner to implement exponential backoff.
+3. Temporarily raised their rate limit during the transition period.
+4. Monitored request patterns for 48 hours post-fix.
+
+Keywords:
+HTTP 429, Rate Limiting, API Gateway, Too Many Requests
+
+--------------------------------------------------
+
+Incident ID: INC-1014
+Category: Security
+Priority: Critical
+Status: Resolved
+
+Issue:
+Users attempting to reach the internal reporting dashboard received SSL_ERROR_BAD_CERT_DOMAIN and could not load the page.
+
+Root Cause:
+The TLS certificate had been renewed but was issued for the wrong subdomain due to a typo in the certificate signing request.
+
+Resolution:
+1. Reissued the certificate with the correct subdomain.
+2. Deployed the corrected certificate to the load balancer.
+3. Verified the certificate chain using openssl s_client.
+4. Confirmed browser access was restored.
+
+Keywords:
+TLS, SSL Certificate, SSL_ERROR_BAD_CERT_DOMAIN, Load Balancer
+
+--------------------------------------------------
+
+Incident ID: INC-1015
+Category: DNS
+Priority: High
+Status: Resolved
+
+Issue:
+Multiple internal services intermittently failed to resolve the hostname of the authentication service, returning DNS SERVFAIL.
+
+Root Cause:
+One of the two internal DNS resolvers had a corrupted zone file after a failed automated sync.
+
+Resolution:
+1. Identified the faulty resolver using dig against each DNS server individually.
+2. Removed the faulty resolver from the load-balanced DNS pool.
+3. Re-synced the zone file from the primary DNS server.
+4. Re-added the resolver after validation.
+
+Keywords:
+DNS, SERVFAIL, Name Resolution, Authentication Service
+
+--------------------------------------------------
+
+Incident ID: INC-1016
+Category: Application
+Priority: Critical
+Status: Resolved
+
+Issue:
+The batch reporting service crashed with java.lang.OutOfMemoryError: Java heap space during nightly processing.
+
+Root Cause:
+A recent change caused the batch job to load an entire month of transaction records into memory at once instead of processing in paged batches.
+
+Resolution:
+1. Analyzed the heap dump to confirm the cause.
+2. Refactored the job to process records in batches of 5,000.
+3. Increased the JVM heap size as a short-term mitigation.
+4. Verified the job completed successfully for three consecutive nights.
+
+Keywords:
+OutOfMemoryError, Java Heap Space, JVM, Batch Processing
+
+--------------------------------------------------
+
+Incident ID: INC-1017
+Category: Messaging
+Priority: Medium
+Status: Resolved
+
+Issue:
+Consumers on the order-events Kafka topic were falling increasingly behind, with consumer lag exceeding 2 million messages.
+
+Root Cause:
+A downstream consumer was making a slow synchronous HTTP call per message instead of batching, throttling overall throughput.
+
+Resolution:
+1. Identified the slow consumer group using Kafka consumer lag monitoring.
+2. Refactored the consumer to batch downstream calls.
+3. Increased consumer parallelism by adding partitions.
+4. Confirmed lag returned to near zero within 2 hours.
+
+Keywords:
+Kafka, Consumer Lag, order-events, Throughput
+
+--------------------------------------------------
+
+Incident ID: INC-1018
+Category: Storage
+Priority: High
+Status: Resolved
+
+Issue:
+File upload service began rejecting all uploads with "Disk quota exceeded" errors.
+
+Root Cause:
+A misconfigured cleanup cron job had silently stopped running three weeks earlier, allowing temporary upload files to accumulate unchecked.
+
+Resolution:
+1. Identified the stalled cron job via the job scheduler logs.
+2. Manually cleared accumulated temporary files.
+3. Fixed the cron job's failing dependency and re-enabled it.
+4. Added disk usage alerting at 80% capacity.
+
+Keywords:
+Disk Quota Exceeded, Storage, Cron Job, File Upload
+
+--------------------------------------------------
+
+Incident ID: INC-1019
+Category: Authentication
+Priority: Critical
+Status: Resolved
+
+Issue:
+Users across the organization were unable to log in, with the identity provider returning invalid_grant errors during the OAuth token exchange.
+
+Root Cause:
+The system clock on the authentication server had drifted by over five minutes due to a failed NTP sync, invalidating token timestamps.
+
+Resolution:
+1. Confirmed clock drift using ntpdate against a reliable time source.
+2. Restarted the NTP daemon and forced an immediate sync.
+3. Verified system time was within tolerance.
+4. Confirmed successful login for affected users.
+
+Keywords:
+OAuth, invalid_grant, NTP, Clock Drift, Authentication
+
+--------------------------------------------------
+
+Incident ID: INC-1020
+Category: Load Balancer
+Priority: High
+Status: Resolved
+
+Issue:
+Users intermittently received HTTP 502 Bad Gateway errors when accessing the customer portal during peak hours.
+
+Root Cause:
+Backend application servers were timing out under peak load because the connection pool size was set too low for the increased traffic.
+
+Resolution:
+1. Reviewed load balancer and application server logs to correlate timeout timing.
+2. Increased the application connection pool size.
+3. Added horizontal auto-scaling based on CPU utilization.
+4. Confirmed no further 502 errors during the next peak traffic window.
+
+Keywords:
+HTTP 502, Bad Gateway, Load Balancer, Connection Pool, Auto-Scaling

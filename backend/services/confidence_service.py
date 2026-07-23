@@ -1,17 +1,42 @@
-def calculate_confidence(distances):
+RELEVANCE_THRESHOLD = 0.0
+HIGH_CONFIDENCE_THRESHOLD = 3.0
 
-    if len(distances) == 0:
-        return "Unknown", 0
 
-    average_distance = sum(distances) / len(distances)
+def calculate_confidence(reranked_results):
 
-    if average_distance < 1.3:
+    if not reranked_results:
+        return {
+            "confidence": "Low",
+            "top_score": None,
+            "supporting_chunks": 0
+        }
+
+    top_score = reranked_results[0]["relevance_score"]
+
+    supporting_chunks = sum(
+        1 for result in reranked_results
+        if result["relevance_score"] > RELEVANCE_THRESHOLD
+    )
+
+    if top_score >= HIGH_CONFIDENCE_THRESHOLD:
         confidence = "High"
 
-    elif average_distance < 2.0:
+    elif top_score >= RELEVANCE_THRESHOLD:
         confidence = "Medium"
 
     else:
         confidence = "Low"
 
-    return confidence, round(average_distance, 3)
+    return {
+        "confidence": confidence,
+        "top_score": round(top_score, 3),
+        "supporting_chunks": supporting_chunks
+    }
+
+
+def filter_relevant_chunks(reranked_results):
+
+    return [
+        result for result in reranked_results
+        if result["relevance_score"] > RELEVANCE_THRESHOLD
+    ]

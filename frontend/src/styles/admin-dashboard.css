@@ -1,0 +1,593 @@
+/* =========================
+   ADMIN PAGE
+========================= */
+
+.admin-dashboard {
+    min-height: 100vh;
+
+    background: #f8fafc;
+
+    color: #0f172a;
+
+    padding: 48px 64px;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.admin-header {
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+}
+
+
+.admin-eyebrow {
+    color: #2563eb;
+
+    font-size: 11px;
+
+    letter-spacing: 2px;
+
+    font-weight: 700;
+}
+
+
+.admin-header h1 {
+    margin-top: 14px;
+
+    font-size: 42px;
+
+    font-weight: 700;
+}
+
+
+.admin-header p {
+    margin-top: 10px;
+
+    color: #64748b;
+
+    font-size: 16px;
+}
+
+
+.admin-user {
+    padding: 11px 18px;
+
+    background: white;
+
+    border: 1px solid #cbd5e1;
+
+    border-radius: 20px;
+
+    color: #64748b;
+
+    font-size: 11px;
+
+    letter-spacing: 1px;
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.admin-content {
+    max-width: 1400px;
+
+    margin: 58px auto 0;
+}
+
+
+/* =========================
+   KPI
+========================= */
+
+.admin-kpi-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 18px;
+}
+
+
+.admin-kpi-card {
+    padding: 24px;
+
+    background: white;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.03);
+}
+
+
+.admin-kpi-card span {
+    color: #64748b;
+
+    font-size: 10px;
+
+    letter-spacing: 1.5px;
+
+    font-weight: 700;
+}
+
+
+.admin-kpi-card strong {
+    display: block;
+
+    margin-top: 18px;
+
+    font-size: 32px;
+}
+
+
+.admin-kpi-card p {
+    margin-top: 10px;
+
+    color: #94a3b8;
+
+    font-size: 12px;
+}
+
+
+.admin-kpi-card .positive {
+    color: #16a34a;
+}
+
+
+/* =========================
+   PANEL
+========================= */
+
+.admin-panel {
+    margin-top: 24px;
+
+    padding: 28px;
+
+    background: white;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 16px;
+}
+
+
+.panel-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+}
+
+
+.section-label {
+    color: #2563eb;
+
+    font-size: 10px;
+
+    letter-spacing: 1.8px;
+
+    font-weight: 700;
+}
+
+
+.panel-heading h2 {
+    margin-top: 8px;
+
+    font-size: 24px;
+
+    font-weight: 600;
+}
+
+
+/* =========================
+   PERIOD
+========================= */
+
+.period-selector {
+    display: flex;
+
+    gap: 5px;
+
+    padding: 4px;
+
+    background: #f1f5f9;
+
+    border-radius: 8px;
+}
+
+
+.period-selector button {
+    padding: 7px 12px;
+
+    background: transparent;
+
+    border: none;
+
+    border-radius: 6px;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+
+.period-selector button.selected {
+    background: white;
+
+    color: #2563eb;
+
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
+}
+
+
+/* =========================
+   CHART
+========================= */
+
+.usage-chart {
+    height: 210px;
+
+    margin-top: 30px;
+
+    padding: 20px;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-around;
+
+    border-bottom: 1px solid #e2e8f0;
+}
+
+
+.chart-bar {
+    position: relative;
+
+    width: 50px;
+
+    background: #2563eb;
+
+    border-radius: 6px 6px 0 0;
+
+    transition: 0.25s ease;
+}
+
+
+.chart-bar:hover {
+    background: #1d4ed8;
+
+    transform: scaleY(1.04);
+}
+
+
+.chart-bar span {
+    position: absolute;
+
+    bottom: -28px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+
+.bar-one {
+    height: 45%;
+}
+
+
+.bar-two {
+    height: 62%;
+}
+
+
+.bar-three {
+    height: 70%;
+}
+
+
+.bar-four {
+    height: 82%;
+}
+
+
+.bar-five {
+    height: 92%;
+}
+
+
+.bar-six {
+    height: 38%;
+}
+
+
+.bar-seven {
+    height: 28%;
+}
+
+
+/* =========================
+   EXPORT
+========================= */
+
+.export-button {
+    padding: 10px 16px;
+
+    background: #2563eb;
+
+    border: none;
+
+    border-radius: 8px;
+
+    color: white;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+
+.export-button:hover {
+    background: #1d4ed8;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================
+   TABLE TOOLBAR
+========================= */
+
+.table-toolbar {
+    margin-top: 28px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+
+.table-toolbar input {
+    width: 320px;
+
+    padding: 11px 14px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    font-size: 13px;
+}
+
+
+.table-toolbar input:focus {
+    border-color: #93c5fd;
+}
+
+
+.table-toolbar span {
+    color: #94a3b8;
+
+    font-size: 12px;
+}
+
+
+/* =========================
+   TABLE
+========================= */
+
+.table-wrapper {
+    margin-top: 20px;
+
+    overflow-x: auto;
+}
+
+
+table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+thead {
+    background: #f8fafc;
+}
+
+
+th {
+    padding: 14px;
+
+    color: #64748b;
+
+    font-size: 10px;
+
+    letter-spacing: 1px;
+
+    text-align: left;
+}
+
+
+td {
+    padding: 16px 14px;
+
+    border-top: 1px solid #f1f5f9;
+
+    color: #475569;
+
+    font-size: 13px;
+}
+
+
+tbody tr {
+    transition: 0.2s ease;
+}
+
+
+tbody tr:hover {
+    background: #f8fafc;
+}
+
+
+/* =========================
+   EMPLOYEE
+========================= */
+
+.employee-name {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.employee-avatar {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #dbeafe;
+
+    border-radius: 50%;
+
+    color: #2563eb;
+
+    font-size: 13px;
+
+    font-weight: 700;
+}
+
+
+.employee-name strong,
+.employee-name span {
+    display: block;
+}
+
+
+.employee-name strong {
+    color: #0f172a;
+
+    font-size: 13px;
+}
+
+
+.employee-name span {
+    margin-top: 3px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+
+.question-count {
+    color: #2563eb;
+
+    font-weight: 700;
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+.status {
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+
+    font-weight: 600;
+}
+
+
+.status.active {
+    background: #dcfce7;
+
+    color: #16a34a;
+}
+
+
+.status.completed {
+    background: #f1f5f9;
+
+    color: #64748b;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 1100px) {
+
+    .admin-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .admin-dashboard {
+        padding: 28px 18px;
+    }
+
+    .admin-header h1 {
+        font-size: 32px;
+    }
+
+    .admin-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-heading {
+        flex-direction: column;
+
+        gap: 18px;
+    }
+
+    .table-toolbar {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+    .table-toolbar input {
+        width: 100%;
+    }
+
+}

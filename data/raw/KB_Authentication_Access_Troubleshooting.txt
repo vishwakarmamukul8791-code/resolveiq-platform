@@ -1,0 +1,34 @@
+Knowledge Base Article: Authentication and Access Troubleshooting Guide
+Document Type: Knowledge Base
+Category: Authentication
+
+Overview
+
+This article covers troubleshooting steps for authentication and access failures, including Active Directory login issues, OAuth token failures, and session-related problems. These issues are among the highest-priority categories since they typically affect many users simultaneously.
+
+Active Directory Login Failures
+
+When newly provisioned users cannot log in, the most common cause is that the user account was created but never added to the required security groups that grant access to the target system. Verify group membership directly in Active Directory Users and Computers, and confirm a group policy update has propagated to the affected system — this can take up to 90 minutes by default unless manually forced with gpupdate.
+
+OAuth and Token Exchange Failures
+
+An invalid_grant error returned during an OAuth token exchange does not always indicate a credentials problem. One frequently overlooked cause is clock drift: OAuth tokens are time-sensitive, and if the authentication server's system clock has drifted from the reference time source (typically due to a failed NTP synchronization), token validation will fail even though the credentials themselves are correct. Always check system time synchronization before investigating credential-related causes.
+
+Session and Token Expiry Issues
+
+Users reporting unexpected logouts or "session expired" errors shortly after logging in should be checked against recent changes to session timeout configuration, load balancer sticky session settings, and clock synchronization across all nodes in a load-balanced authentication cluster. Inconsistent time across nodes can cause tokens issued by one node to appear invalid when validated by another.
+
+Single Sign-On (SSO) Failures
+
+SSO failures are frequently certificate-related. If users are redirected to the identity provider but the redirect back to the application fails, check the certificate used to sign SAML assertions has not expired, and that the assertion consumer service URL registered with the identity provider matches the application's actual callback URL exactly, including protocol and trailing slashes.
+
+General Diagnostic Steps
+
+1. Confirm whether the issue affects a single user, a group, or the entire organization — the scope strongly indicates whether the cause is account-specific, group-policy-related, or infrastructure-wide.
+2. Check system clock synchronization on all authentication infrastructure before deeper investigation, since clock drift is a disproportionately common and easily overlooked root cause.
+3. Review recent changes to group policies, identity provider configuration, or certificate renewals.
+4. Reproduce the exact error message, since generic "cannot log in" reports often map to several unrelated root causes depending on the specific error text.
+
+Escalation
+
+If the issue affects more than a handful of users or appears infrastructure-wide, escalate immediately to the identity and access management team rather than troubleshooting individual accounts.
