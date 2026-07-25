@@ -42,11 +42,19 @@ def get_health_status():
     else:
         health["gemini_api"] = "Missing"
 
+
+    # JWT secret (required for auth)
+    if os.getenv("JWT_SECRET_KEY"):
+        health["jwt_secret"] = "Configured"
+    else:
+        health["jwt_secret"] = "Missing"    
+
     if (
         health["faiss_index"] == "Loaded"
         and health["metadata"] == "Loaded"
         and health["registry"] == "Loaded"
         and health["gemini_api"] == "Configured"
+        and health["jwt_secret"] == "Configured"   # ← this line was missing
     ):
         health["status"] = "Healthy"
     else:

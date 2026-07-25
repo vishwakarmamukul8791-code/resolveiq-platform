@@ -24,6 +24,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         name, extension = os.path.splitext(file.filename)
 
+        os.makedirs("data/raw", exist_ok=True)
         file_path = f"data/raw/{file.filename}"
 
         counter = 1

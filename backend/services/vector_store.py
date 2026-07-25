@@ -3,7 +3,7 @@ import os
 
 
 def save_metadata(metadata):
-
+    os.makedirs("data/vector_store", exist_ok=True)
     with open(
         "data/vector_store/metadata.json",
         "w",

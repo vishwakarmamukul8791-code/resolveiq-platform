@@ -26,6 +26,7 @@ def load_registry():
         return json.loads(content)
 
 def save_registry(data):
+    os.makedirs(os.path.dirname(REGISTRY_PATH), exist_ok=True)
 
     with open(
         REGISTRY_PATH,

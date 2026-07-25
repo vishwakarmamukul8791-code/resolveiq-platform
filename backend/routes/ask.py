@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+# from fastapi import APIRouter, 
+from fastapi import APIRouter,HTTPException
 from datetime import datetime
 
 from backend.services.logging_service import log_info, log_error
+from backend.services.query_rewrite_service import rewrite_query
 from backend.services.hybrid_retrieval_service import hybrid_search
 from backend.services.rerank_service import rerank
 from backend.services.retrieval_contract import build_retrieval_response
@@ -28,13 +30,15 @@ def ask_question(query: str, document_name: str | None = None):
 
         log_info(f"Question Received: {query}")
 
+        search_query = rewrite_query(query)
+
         candidates = hybrid_search(
-            query,
+            search_query,
             top_k=10,
             document_name=document_name
         )
 
-        reranked = rerank(query, candidates, top_k=5)
+        reranked = rerank(search_query, candidates, top_k=5)
 
         normalized = build_retrieval_response(query, reranked)
 
@@ -81,6 +85,7 @@ def ask_question(query: str, document_name: str | None = None):
 
         history.append({
             "question": query,
+            "rewritten_query": search_query,
             "answer": answer,
             "confidence": confidence_info["confidence"],
             "created_at": datetime.now().isoformat()
@@ -92,6 +97,7 @@ def ask_question(query: str, document_name: str | None = None):
 
         return {
             "question": query,
+            "rewritten_query": search_query,
             "answer": answer,
             "sources": sources,
             "confidence": confidence_info["confidence"],
