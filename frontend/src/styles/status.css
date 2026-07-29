@@ -2,8 +2,8 @@
     margin-top: 24px;
     padding: 20px;
 
-    background: #0f172a;
-    border-radius: 12px;
+    background: var(--color-dark-surface);
+    border-radius: var(--radius-md);
 
     color: white;
 }
@@ -19,11 +19,11 @@
 .status-heading span {
     font-size: 11px;
     letter-spacing: 1.5px;
-    color: #cbd5e1;
+    color: var(--color-text-on-dark);
 }
 
 .status-heading small {
-    color: #4ade80;
+    color: var(--color-success-bright);
     font-size: 10px;
 }
 
@@ -42,16 +42,16 @@
 .status-items i {
     width: 7px;
     height: 7px;
-    background: #22c55e;
+    background: var(--color-success-dot);
     border-radius: 50%;
 }
 
 .status-items span {
-    color: #cbd5e1;
+    color: var(--color-text-on-dark);
 }
 
 .status-items strong {
-    color: #4ade80;
+    color: var(--color-success-bright);
 }
 
 @media (max-width: 900px) {

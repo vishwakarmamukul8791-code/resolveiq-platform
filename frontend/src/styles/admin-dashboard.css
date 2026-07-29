@@ -5,9 +5,9 @@
 .admin-dashboard {
     min-height: 100vh;
 
-    background: #f8fafc;
+    background: var(--color-bg-page);
 
-    color: #0f172a;
+    color: var(--color-text-primary);
 
     padding: 48px 64px;
 }
@@ -27,7 +27,7 @@
 
 
 .admin-eyebrow {
-    color: #2563eb;
+    color: var(--color-accent);
 
     font-size: 11px;
 
@@ -49,26 +49,65 @@
 .admin-header p {
     margin-top: 10px;
 
-    color: #64748b;
+    color: var(--color-text-muted);
 
     font-size: 16px;
 }
 
 
-.admin-user {
-    padding: 11px 18px;
+/* =========================
+   TABS
+========================= */
 
-    background: white;
+.admin-tabs {
+    max-width: 1400px;
 
-    border: 1px solid #cbd5e1;
+    margin: 32px auto 0;
 
-    border-radius: 20px;
+    display: flex;
+    gap: 6px;
 
-    color: #64748b;
+    padding: 4px;
 
-    font-size: 11px;
+    background: var(--color-surface-alt);
 
-    letter-spacing: 1px;
+    border-radius: 10px;
+
+    width: fit-content;
+}
+
+
+.admin-tabs button {
+    padding: 9px 18px;
+
+    background: transparent;
+
+    border: none;
+
+    border-radius: 7px;
+
+    color: var(--color-text-muted);
+
+    font-size: 13px;
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition: 0.15s ease;
+}
+
+
+.admin-tabs button:hover {
+    color: var(--color-text-primary);
+}
+
+
+.admin-tabs button.selected {
+    background: var(--color-surface);
+
+    color: var(--color-accent);
+
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
 }
 
 
@@ -79,7 +118,7 @@
 .admin-content {
     max-width: 1400px;
 
-    margin: 58px auto 0;
+    margin: 24px auto 0;
 }
 
 
@@ -99,18 +138,18 @@
 .admin-kpi-card {
     padding: 24px;
 
-    background: white;
+    background: var(--color-surface);
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
 
     border-radius: 14px;
 
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.03);
+    box-shadow: var(--shadow-card);
 }
 
 
 .admin-kpi-card span {
-    color: #64748b;
+    color: var(--color-text-muted);
 
     font-size: 10px;
 
@@ -132,205 +171,174 @@
 .admin-kpi-card p {
     margin-top: 10px;
 
-    color: #94a3b8;
+    color: var(--color-text-faint);
 
     font-size: 12px;
 }
 
-
-.admin-kpi-card .positive {
-    color: #16a34a;
-}
-
-
 /* =========================
-   PANEL
+   CONFIDENCE DISTRIBUTION
 ========================= */
 
-.admin-panel {
+.confidence-bar {
+    display: flex;
+
+    height: 14px;
+
     margin-top: 24px;
 
-    padding: 28px;
+    border-radius: 999px;
 
-    background: white;
+    overflow: hidden;
 
-    border: 1px solid #e2e8f0;
-
-    border-radius: 16px;
+    background: var(--color-surface-alt);
 }
 
 
-.panel-heading {
+.segment {
+    height: 100%;
+
+    transition: width 0.3s ease;
+}
+
+
+.segment.high {
+    background: var(--color-success);
+}
+
+
+.segment.medium {
+    background: var(--color-warning-bright);
+}
+
+
+.segment.low {
+    background: var(--color-border-strong);
+}
+
+
+.confidence-legend {
     display: flex;
 
-    align-items: flex-start;
+    gap: 28px;
 
-    justify-content: space-between;
+    margin-top: 16px;
+
+    font-size: 13px;
+
+    color: var(--color-text-muted);
 }
 
 
-.section-label {
-    color: #2563eb;
-
-    font-size: 10px;
-
-    letter-spacing: 1.8px;
-
-    font-weight: 700;
+.confidence-legend div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 
-.panel-heading h2 {
-    margin-top: 8px;
+.dot {
+    width: 9px;
+    height: 9px;
 
-    font-size: 24px;
+    border-radius: 50%;
 
-    font-weight: 600;
+    display: inline-block;
 }
+
+
+.dot.high {
+    background: var(--color-success);
+}
+
+
+.dot.medium {
+    background: var(--color-warning-bright);
+}
+
+
+.dot.low {
+    background: var(--color-border-strong);
+}
+
 
 
 /* =========================
-   PERIOD
+   BAR LIST
+   (generic label + bar + count row — used by the Overview tab's
+   per-engineer chart and the RAG Insights tab's per-document chart)
 ========================= */
 
-.period-selector {
-    display: flex;
-
-    gap: 5px;
-
-    padding: 4px;
-
-    background: #f1f5f9;
-
-    border-radius: 8px;
-}
-
-
-.period-selector button {
-    padding: 7px 12px;
-
-    background: transparent;
-
-    border: none;
-
-    border-radius: 6px;
-
-    color: #64748b;
-
-    font-size: 12px;
-
-    cursor: pointer;
-}
-
-
-.period-selector button.selected {
-    background: white;
-
-    color: #2563eb;
-
-    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
-}
-
-
-/* =========================
-   CHART
-========================= */
-
-.usage-chart {
-    height: 210px;
-
-    margin-top: 30px;
-
-    padding: 20px;
+.bar-list {
+    margin-top: 22px;
 
     display: flex;
-
-    align-items: flex-end;
-
-    justify-content: space-around;
-
-    border-bottom: 1px solid #e2e8f0;
+    flex-direction: column;
+    gap: 14px;
 }
 
 
-.chart-bar {
-    position: relative;
+.bar-row {
+    display: grid;
 
-    width: 50px;
+    grid-template-columns: 160px 1fr 70px;
 
-    background: #2563eb;
+    align-items: center;
 
-    border-radius: 6px 6px 0 0;
-
-    transition: 0.25s ease;
+    gap: 14px;
 }
 
 
-.chart-bar:hover {
-    background: #1d4ed8;
+.bar-label {
+    color: var(--color-text-primary);
 
-    transform: scaleY(1.04);
+    font-size: 13px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 
-.chart-bar span {
-    position: absolute;
+.bar-track {
+    height: 10px;
 
-    bottom: -28px;
+    background: var(--color-surface-alt);
 
-    left: 50%;
+    border-radius: 999px;
 
-    transform: translateX(-50%);
-
-    color: #94a3b8;
-
-    font-size: 11px;
+    overflow: hidden;
 }
 
 
-.bar-one {
-    height: 45%;
+.bar-fill {
+    height: 100%;
+
+    background: var(--color-accent);
+
+    border-radius: 999px;
+
+    transition: width 0.3s ease;
 }
 
 
-.bar-two {
-    height: 62%;
+.bar-count {
+    color: var(--color-text-muted);
+
+    font-size: 12.5px;
+
+    text-align: right;
 }
-
-
-.bar-three {
-    height: 70%;
-}
-
-
-.bar-four {
-    height: 82%;
-}
-
-
-.bar-five {
-    height: 92%;
-}
-
-
-.bar-six {
-    height: 38%;
-}
-
-
-.bar-seven {
-    height: 28%;
-}
-
 
 /* =========================
    EXPORT
+   (kept for the Engineers tab, next)
 ========================= */
 
 .export-button {
     padding: 10px 16px;
 
-    background: #2563eb;
+    background: var(--color-accent);
 
     border: none;
 
@@ -347,7 +355,7 @@
 
 
 .export-button:hover {
-    background: #1d4ed8;
+    background: var(--color-accent-hover);
 
     transform: translateY(-1px);
 }
@@ -355,6 +363,7 @@
 
 /* =========================
    TABLE TOOLBAR
+   (kept for the Engineers tab, next)
 ========================= */
 
 .table-toolbar {
@@ -373,25 +382,27 @@
 
     padding: 11px 14px;
 
-    background: #f8fafc;
+    background: var(--color-bg-page);
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
 
     border-radius: 8px;
 
     outline: none;
 
     font-size: 13px;
+
+    font-family: inherit;
 }
 
 
 .table-toolbar input:focus {
-    border-color: #93c5fd;
+    border-color: var(--color-accent-light);
 }
 
 
 .table-toolbar span {
-    color: #94a3b8;
+    color: var(--color-text-faint);
 
     font-size: 12px;
 }
@@ -399,6 +410,7 @@
 
 /* =========================
    TABLE
+   (kept for the Engineers tab, next)
 ========================= */
 
 .table-wrapper {
@@ -416,14 +428,14 @@ table {
 
 
 thead {
-    background: #f8fafc;
+    background: var(--color-bg-page);
 }
 
 
 th {
     padding: 14px;
 
-    color: #64748b;
+    color: var(--color-text-muted);
 
     font-size: 10px;
 
@@ -436,9 +448,9 @@ th {
 td {
     padding: 16px 14px;
 
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--color-surface-alt);
 
-    color: #475569;
+    color: var(--color-text-muted);
 
     font-size: 13px;
 }
@@ -450,12 +462,13 @@ tbody tr {
 
 
 tbody tr:hover {
-    background: #f8fafc;
+    background: var(--color-bg-page);
 }
 
 
 /* =========================
    EMPLOYEE
+   (kept for the Engineers tab, next)
 ========================= */
 
 .employee-name {
@@ -475,11 +488,11 @@ tbody tr:hover {
     align-items: center;
     justify-content: center;
 
-    background: #dbeafe;
+    background: var(--color-accent-bg);
 
     border-radius: 50%;
 
-    color: #2563eb;
+    color: var(--color-accent);
 
     font-size: 13px;
 
@@ -494,7 +507,7 @@ tbody tr:hover {
 
 
 .employee-name strong {
-    color: #0f172a;
+    color: var(--color-text-primary);
 
     font-size: 13px;
 }
@@ -503,14 +516,14 @@ tbody tr:hover {
 .employee-name span {
     margin-top: 3px;
 
-    color: #94a3b8;
+    color: var(--color-text-faint);
 
     font-size: 11px;
 }
 
 
 .question-count {
-    color: #2563eb;
+    color: var(--color-accent);
 
     font-weight: 700;
 }
@@ -518,6 +531,7 @@ tbody tr:hover {
 
 /* =========================
    STATUS
+   (kept for the Engineers tab, next)
 ========================= */
 
 .status {
@@ -532,16 +546,325 @@ tbody tr:hover {
 
 
 .status.active {
-    background: #dcfce7;
+    background: var(--color-success-bg);
 
-    color: #16a34a;
+    color: var(--color-success);
 }
 
 
 .status.completed {
-    background: #f1f5f9;
+    background: var(--color-surface-alt);
 
-    color: #64748b;
+    color: var(--color-text-muted);
+}
+
+/* =========================
+   ENGINEERS TAB EXTRAS
+========================= */
+
+.panel-actions {
+    display: flex;
+    gap: 10px;
+}
+
+
+.export-button.secondary {
+    background: transparent;
+
+    color: var(--color-accent);
+
+    border: 1px solid var(--color-accent);
+}
+
+
+.export-button.secondary:hover {
+    background: var(--color-accent-bg);
+
+    transform: none;
+}
+
+
+.must-reset-tag {
+    display: inline-block;
+
+    margin-top: 4px;
+
+    padding: 2px 8px;
+
+    background: var(--color-warning-bg);
+    border-radius: 999px;
+
+    color: var(--color-warning);
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+.row-actions {
+    display: flex;
+    gap: 6px;
+}
+
+
+.row-action {
+    padding: 6px 10px;
+
+    background: transparent;
+
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+
+    color: var(--color-text-muted);
+
+    font-size: 11.5px;
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition: 0.15s ease;
+}
+
+
+.row-action:hover:not(:disabled) {
+    border-color: var(--color-accent);
+
+    color: var(--color-accent);
+}
+
+
+.row-action:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+.empty-row {
+    text-align: center;
+
+    padding: 40px 0 !important;
+
+    color: var(--color-text-faint);
+}
+
+
+.hidden-file-input {
+    display: none;
+}
+
+.gap-question {
+    max-width: 560px;
+
+    white-space: normal;
+    line-height: 1.5;
+}
+
+/* =========================
+   SYSTEM HEALTH TAB
+========================= */
+
+.health-banner {
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+    padding: 20px 24px;
+
+    border-radius: 14px;
+
+    margin-bottom: 4px;
+}
+
+
+.health-banner.healthy {
+    background: var(--color-success-bg);
+
+    border: 1px solid var(--color-success);
+}
+
+
+.health-banner.unhealthy {
+    background: var(--color-danger-bg);
+
+    border: 1px solid var(--color-danger-border);
+}
+
+
+.health-banner-dot {
+    width: 12px;
+    height: 12px;
+
+    border-radius: 50%;
+
+    flex-shrink: 0;
+}
+
+
+.health-banner.healthy .health-banner-dot {
+    background: var(--color-success);
+}
+
+
+.health-banner.unhealthy .health-banner-dot {
+    background: var(--color-danger);
+}
+
+
+.health-banner strong {
+    display: block;
+
+    color: var(--color-text-primary);
+
+    font-size: 16px;
+}
+
+
+.health-banner p {
+    margin-top: 2px;
+
+    color: var(--color-text-muted);
+
+    font-size: 13px;
+}
+
+
+.health-banner button {
+    margin-left: auto;
+}
+
+
+.retry-button {
+    margin-top: 14px;
+}
+
+
+.health-grid {
+    margin-top: 20px;
+
+    display: grid;
+
+    grid-template-columns: repeat(5, 1fr);
+
+    gap: 14px;
+}
+
+
+.health-item {
+    padding: 16px;
+
+    background: var(--color-bg-page);
+
+    border: 1px solid var(--color-border);
+
+    border-radius: 10px;
+
+    text-align: center;
+}
+
+
+.health-item p {
+    margin-top: 10px;
+
+    color: var(--color-text-muted);
+
+    font-size: 12px;
+}
+
+
+.sync-ok {
+    color: var(--color-success) !important;
+}
+
+
+.sync-bad {
+    color: var(--color-danger) !important;
+}
+
+
+.config-list {
+    margin-top: 20px;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 12px;
+}
+
+
+.config-list > div {
+    display: flex;
+
+    justify-content: space-between;
+
+    padding: 12px 16px;
+
+    background: var(--color-bg-page);
+
+    border-radius: 8px;
+
+    font-size: 13px;
+}
+
+
+.config-list span {
+    color: var(--color-text-muted);
+}
+
+
+.config-list strong {
+    color: var(--color-text-primary);
+}
+
+
+.admin-hint.success {
+    color: var(--color-success);
+}
+
+
+.row-action.danger:hover:not(:disabled) {
+    border-color: var(--color-danger);
+
+    color: var(--color-danger);
+}
+
+
+/* =========================
+   HEADER ACTIONS (admin)
+========================= */
+
+.admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+.admin-nav-link {
+    padding: 10px 16px;
+
+    display: flex;
+    align-items: center;
+
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+    text-decoration: none;
+
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+
+.admin-nav-link:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
 }
 
 
@@ -555,11 +878,22 @@ tbody tr:hover {
         grid-template-columns: repeat(2, 1fr);
     }
 
+    .health-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
 }
 
 
 @media (max-width: 700px) {
 
+    .health-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .config-list {
+        grid-template-columns: 1fr;
+    }
     .admin-dashboard {
         padding: 28px 18px;
     }
@@ -588,6 +922,10 @@ tbody tr:hover {
 
     .table-toolbar input {
         width: 100%;
+    }
+
+    .bar-row {
+        grid-template-columns: 90px 1fr 32px;
     }
 
 }

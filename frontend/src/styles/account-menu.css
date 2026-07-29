@@ -1,0 +1,98 @@
+/* frontend/src/styles/account-menu.css
+ *
+ * Shared avatar + dropdown used on both SupportDashboard and
+ * AdminDashboard headers — was duplicated markup/CSS in both places
+ * before, now a single component (AccountMenu.jsx) and stylesheet.
+ */
+
+.profile-area {
+    position: relative;
+}
+
+.profile-menu-button {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    background: transparent;
+    border: none;
+
+    cursor: pointer;
+}
+
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--color-accent-bg);
+    border-radius: 50%;
+
+    color: var(--color-accent);
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.profile-menu {
+    position: absolute;
+
+    /* Relative to the button's own height, not a hardcoded pixel guess. */
+    top: calc(100% + 10px);
+    right: 0;
+
+    width: 230px;
+
+    padding: 18px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-menu);
+
+    z-index: 20;
+}
+
+.profile-menu strong {
+    display: block;
+    color: var(--color-text-primary);
+    font-size: 14px;
+}
+
+.profile-menu span {
+    display: block;
+    margin-top: 5px;
+    color: var(--color-text-muted);
+    font-size: 12px;
+}
+
+.profile-menu button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px;
+
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+
+    color: var(--color-text-primary);
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.profile-menu button:hover {
+    background: var(--color-surface-alt);
+}
+
+.profile-menu .logout-button {
+    color: var(--color-danger);
+}

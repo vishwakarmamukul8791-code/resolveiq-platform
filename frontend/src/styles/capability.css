@@ -5,13 +5,13 @@
 .capability-header span {
     font-size: 11px;
     letter-spacing: 2px;
-    color: #2563eb;
+    color: var(--color-accent);
     font-weight: 700;
 }
 
 .capability-header h2 {
     margin-top: 10px;
-    color: #0f172a;
+    color: var(--color-text-primary);
 }
 
 .capability-grid {
@@ -23,35 +23,35 @@
 }
 
 .capability-card {
-    padding: 40px;
+    padding: 8px;
 
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
 
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .capability-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--shadow-card);
 }
 
 .capability-number {
-    color: #2563eb;
+    color: var(--color-accent);
     font-size: 12px;
     font-weight: 700;
 }
 
 .capability-card h3 {
-    color: #0f172a;
-    margin-top: 20px;
+    color: var(--color-text-primary);
+    margin-top: 2px;
 }
 
 .capability-card p {
-    color: #64748b;
+    color: var(--color-text-muted);
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.4;
 }
 
 @media (max-width: 900px) {

@@ -1,0 +1,105 @@
+/* frontend/src/styles/theme.css
+ *
+ * Single source of truth for the app's design tokens — now rebranded to
+ * ResolveIQ's green identity, with two selectable modes:
+ *   - light  ("green + white"): white/near-white surfaces, deep green accent
+ *   - dark   ("dark green"):    near-black surfaces, the exact logo green
+ *
+ * The exact brand green (#64c434) was sampled directly from the logo file.
+ * It's NOT used as the default text/button accent in light mode, though —
+ * on white it only hits a 2.2:1 contrast ratio (WCAG AA needs 4.5:1 for
+ * text). --color-accent below is a darkened version of the same hue that
+ * passes contrast checks; --color-accent-bright carries the literal brand
+ * green for icons, dots, and large decorative elements where contrast
+ * rules don't apply the same way. In dark mode the brand green goes
+ * straight onto near-black, where it easily clears 9:1.
+ *
+ * Every other stylesheet in the app should reference these variables,
+ * never a new hex literal, so the two modes can't drift out of sync.
+ */
+
+:root {
+  /* Surfaces */
+  --color-bg-page: #f7faf6;
+  --color-surface: #ffffff;
+  --color-surface-alt: #eef5ec;
+  --color-dark-surface: #0b1710;
+  --color-dark-surface-alt: #16261c;
+
+  /* Text */
+  --color-text-primary: #0f1f0c;
+  --color-text-muted: #5c6b58;
+  --color-text-faint: #8a9986;
+  --color-text-on-dark: #cbd9c6;
+
+  /* Borders */
+  --color-border: #dbe6d7;
+  --color-border-strong: #c1d2bc;
+  --color-border-dark: #26382c;
+
+  /* Accent — primary actions, links, active nav state */
+  --color-accent: #2f6b18;         /* WCAG-AA safe on white (6.5:1) */
+  --color-accent-hover: #255313;
+  --color-accent-bright: #64c434;  /* exact brand green — icons/dots/deco */
+  --color-accent-light: #9ae471;
+  --color-accent-bg: #e7f6dd;
+
+  /* Semantic status */
+  --color-success: #2f6b18;
+  --color-success-bright: #86e066;
+  --color-success-dot: #64c434;
+  --color-success-bg: #e7f6dd;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  /* Elevation */
+  --shadow-card: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --shadow-menu: 0 12px 30px rgba(15, 23, 42, 0.12);
+
+  /* Type */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+/* Dark mode: everything the light theme has, redefined. Toggled by
+   ThemeContext setting <html data-theme="dark">. */
+:root[data-theme="dark"] {
+  --color-bg-page: #05100a;
+  --color-surface: #0d1a12;
+  --color-surface-alt: #142219;
+  --color-dark-surface: #000000;
+  --color-dark-surface-alt: #0d1a12;
+
+  --color-text-primary: #eaf5e6;
+  --color-text-muted: #9fb399;
+  --color-text-faint: #708a6a;
+  --color-text-on-dark: #cbd9c6;
+
+  --color-border: #1e2e22;
+  --color-border-strong: #2c422f;
+  --color-border-dark: #26382c;
+
+  --color-accent: #64c434;         /* full brand green — plenty of contrast on near-black */
+  --color-accent-hover: #7ed35c;
+  --color-accent-bright: #64c434;
+  --color-accent-light: #9ae471;
+  --color-accent-bg: rgba(100, 196, 52, 0.14);
+
+  --color-success: #64c434;
+  --color-success-bright: #86e066;
+  --color-success-dot: #64c434;
+  --color-success-bg: rgba(100, 196, 52, 0.14);
+
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(220, 38, 38, 0.16);
+  --color-danger-border: rgba(248, 113, 113, 0.4);
+
+  --shadow-card: 0 18px 45px rgba(0, 0, 0, 0.45);
+  --shadow-menu: 0 12px 30px rgba(0, 0, 0, 0.5);
+}

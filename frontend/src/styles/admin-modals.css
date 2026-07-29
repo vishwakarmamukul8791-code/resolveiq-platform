@@ -1,0 +1,122 @@
+.field {
+    margin-bottom: 16px;
+}
+
+.field label {
+    display: block;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    color: var(--color-text-primary);
+
+    margin-bottom: 8px;
+}
+
+.field input {
+    width: 100%;
+
+    padding: 11px 13px;
+
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+
+    font-size: 14px;
+    font-family: inherit;
+
+    box-sizing: border-box;
+}
+
+.field input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+.field input:disabled {
+    background: var(--color-surface-alt);
+    cursor: not-allowed;
+}
+
+.field-error {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+
+    background: var(--color-danger-bg);
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-sm);
+
+    color: var(--color-danger);
+    font-size: 13px;
+}
+
+.modal-submit {
+    width: 100%;
+    padding: 12px;
+
+    background: var(--color-accent);
+    border: none;
+    border-radius: var(--radius-sm);
+
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+}
+
+.modal-submit:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+}
+
+.modal-submit:disabled {
+    background: var(--color-border-strong);
+    cursor: not-allowed;
+}
+
+.temp-password-warning {
+    color: var(--color-text-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+
+.temp-password-box {
+    margin-top: 16px;
+
+    padding: 14px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.temp-password-box code {
+    font-size: 14px;
+    color: var(--color-text-primary);
+    word-break: break-all;
+}
+
+.temp-password-box button {
+    flex-shrink: 0;
+
+    padding: 7px 14px;
+
+    background: var(--color-accent);
+    border: none;
+    border-radius: 999px;
+
+    color: white;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.temp-password-box button:hover {
+    background: var(--color-accent-hover);
+}

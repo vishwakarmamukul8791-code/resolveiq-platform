@@ -27,7 +27,7 @@ def main():
     temp_password = secrets.token_urlsafe(12)
 
     try:
-        create_user(username, temp_password)
+        create_user(username, temp_password, role="admin")
 
     except ValueError as e:
         print(f"Could not create user: {e}")

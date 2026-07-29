@@ -5,66 +5,61 @@
     align-items: center;
     justify-content: center;
 
-    background: #f8fafc;
+    background: var(--color-bg-page);
 }
-
 
 .not-found-card {
     width: 420px;
 
     padding: 48px;
 
-    background: white;
+    background: var(--color-surface);
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
 
-    border-radius: 18px;
+    border-radius: var(--radius-lg);
 
     text-align: center;
 
-    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.06);
+    box-shadow: var(--shadow-card);
 }
 
-
 .not-found-code {
-    color: #2563eb;
+    color: var(--color-accent);
 
     font-size: 64px;
 
     font-weight: 700;
 }
 
-
 .not-found-card h1 {
     margin-top: 10px;
 
-    color: #0f172a;
+    color: var(--color-text-primary);
 
     font-size: 28px;
 }
 
-
 .not-found-card p {
     margin-top: 12px;
 
-    color: #64748b;
+    color: var(--color-text-muted);
 
     font-size: 14px;
 
     line-height: 1.6;
 }
 
-
 .not-found-card button {
     margin-top: 28px;
 
     padding: 12px 18px;
 
-    background: #2563eb;
+    background: var(--color-accent);
 
     border: none;
 
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
 
     color: white;
 
@@ -73,7 +68,6 @@
     font-size: 13px;
 }
 
-
 .not-found-card button:hover {
-    background: #1d4ed8;
+    background: var(--color-accent-hover);
 }

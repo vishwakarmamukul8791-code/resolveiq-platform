@@ -1,7 +1,7 @@
 .main-navbar {
     height: 76px;
     padding: 0 48px;
-    background: #0f172a;
+    background: var(--color-dark-surface);
     color: white;
 
     display: flex;
@@ -11,27 +11,23 @@
     position: sticky;
     top: 0;
     z-index: 1000;
+
+    border-bottom: 1px solid var(--color-border-dark);
 }
 
 .brand-section {
     display: flex;
     align-items: center;
     gap: 14px;
+
+    text-decoration: none;
+    color: inherit;
 }
 
-.brand-mark {
+.brand-mark-icon {
     width: 42px;
     height: 42px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: #2563eb;
-    border-radius: 10px;
-
-    font-weight: 700;
-    letter-spacing: 1px;
+    object-fit: contain;
 }
 
 .brand-section h3 {
@@ -42,16 +38,21 @@
 
 .brand-section span {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--color-text-on-dark);
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .edition-badge {
     font-size: 11px;
     letter-spacing: 1px;
-    color: #93c5fd;
+    color: var(--color-accent-light);
 
-    border: 1px solid #334155;
+    border: 1px solid var(--color-border-dark);
     padding: 8px 14px;
     border-radius: 20px;
 }
-

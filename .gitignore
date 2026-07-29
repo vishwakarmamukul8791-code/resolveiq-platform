@@ -30,4 +30,7 @@ frontend/node_modules/
 frontend/dist/
 data/eval/
 
+data/users.jsondata/sessions.json
+data/document_registry.json
+data/sessions.json
 data/users.json

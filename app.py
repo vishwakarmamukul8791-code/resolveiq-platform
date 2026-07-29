@@ -14,9 +14,10 @@ from backend.routes.stats import router as stats_router
 from backend.routes.health import router as health_router
 from backend.routes.debug_retrieval import router as debug_retrieval_router
 from backend.routes.auth import router as auth_router
+from backend.routes.admin import router as admin_router
+from fastapi import FastAPI
 
-
-app = FastAPI(title="Intelligent Incident Resolution Assistant")
+app = FastAPI(title="ResolveIQ — Enterprise AI Incident Intelligence Platform")
 
 # Allow the React dev server (port 5173) and any production frontend origin
 # to call the API. Update origins before production deployment.
@@ -41,3 +42,4 @@ app.include_router(stats_router)
 app.include_router(health_router)
 app.include_router(debug_retrieval_router)
 app.include_router(auth_router)
+app.include_router(admin_router)
