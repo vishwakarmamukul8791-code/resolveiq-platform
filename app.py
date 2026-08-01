@@ -22,8 +22,21 @@ from backend.routes.debug_retrieval import router as debug_retrieval_router
 from backend.routes.auth import router as auth_router
 from backend.routes.admin import router as admin_router
 
+is_production = (
+    os.getenv("ENVIRONMENT", "development").strip().lower()
+    == "production"
+)
+
+enable_debug_routes = (
+    os.getenv("ENABLE_DEBUG_ROUTES", "false").strip().lower()
+    in {"1", "true", "yes"}
+)
+
 app = FastAPI(
-    title="ResolveIQ — AI-Powered Incident Resolution Platform"
+    title="ResolveIQ — AI-Powered Incident Resolution Platform",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
 )
 
 # Allow the React dev server (port 5173) plus any deployed frontend origin(s)
@@ -36,12 +49,16 @@ _extra_origins = [
     if origin.strip()
 ]
 
+_local_origins = [] if is_production else [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        *_extra_origins
+        *_local_origins,
+        *_extra_origins,
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -59,6 +76,7 @@ app.include_router(history_router)
 app.include_router(delete_history_router)
 app.include_router(stats_router)
 app.include_router(health_router)
-app.include_router(debug_retrieval_router)
+if enable_debug_routes and not is_production:
+    app.include_router(debug_retrieval_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
