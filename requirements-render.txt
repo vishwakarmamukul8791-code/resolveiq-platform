@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+faiss-cpu
+google-genai<3.0.0
+python-dotenv
+python-multipart
+numpy
+pandas
+pydantic
+pdfplumber
+rank-bm25
+pyjwt
+httpx
