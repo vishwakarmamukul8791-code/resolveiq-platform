@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 
 from backend.services.logging_service import log_info, log_error
-from backend.services.history_service import delete_user_history, delete_single_entry
+from backend.services.history_service import delete_user_history, delete_conversation
 from backend.services.auth_service import get_current_user
 
 router = APIRouter()
@@ -24,16 +24,16 @@ def delete_all_history(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/history/{entry_id}")
 def delete_one_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
-    """Deletes a single investigation, ownership-checked."""
+    """Deletes an entire conversation thread (all its messages), ownership-checked."""
 
     try:
 
-        deleted = delete_single_entry(entry_id, current_user["username"])
+        deleted = delete_conversation(entry_id, current_user["username"])
 
         if not deleted:
             raise HTTPException(status_code=404, detail="Investigation not found.")
 
-        log_info(f"Entry deleted: {entry_id} by {current_user['username']}")
+        log_info(f"Conversation deleted: {entry_id} by {current_user['username']}")
 
         return {"message": "Investigation deleted."}
 

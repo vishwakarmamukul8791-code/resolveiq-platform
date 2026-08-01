@@ -1,5 +1,5 @@
 """
-Task 12 — Eval dataset.
+Offline retrieval evaluation dataset.
 
 Every query and marker here is grounded in the real corpus text as of this
 handoff: Sample_Incidents_Extended.txt (INC-1009 to INC-1020) and the two KB
@@ -196,7 +196,7 @@ EVAL_CASES = [
 
 
 # Queries with no correct answer in the corpus at all. These test the
-# abstain path from Task 9 — confidence should come back Low, and /ask
+# abstention path: confidence should remain Low, and /ask
 # should never reach the LLM for these.
 NEGATIVE_CASES = [
     {

@@ -1,4 +1,10 @@
-from fastapi import APIRouter, HTTPException   
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routes.upload import router as upload_router
@@ -15,15 +21,28 @@ from backend.routes.health import router as health_router
 from backend.routes.debug_retrieval import router as debug_retrieval_router
 from backend.routes.auth import router as auth_router
 from backend.routes.admin import router as admin_router
-from fastapi import FastAPI
 
-app = FastAPI(title="ResolveIQ — Enterprise AI Incident Intelligence Platform")
+app = FastAPI(
+    title="ResolveIQ — AI-Powered Incident Resolution Platform"
+)
 
-# Allow the React dev server (port 5173) and any production frontend origin
-# to call the API. Update origins before production deployment.
+# Allow the React dev server (port 5173) plus any deployed frontend origin(s)
+# supplied via FRONTEND_ORIGIN, e.g.:
+#   FRONTEND_ORIGIN=https://resolveiq.yourdomain.com
+# Comma-separate multiple origins if you deploy more than one frontend.
+_extra_origins = [
+    origin.strip()
+    for origin in os.getenv("FRONTEND_ORIGIN", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        *_extra_origins
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

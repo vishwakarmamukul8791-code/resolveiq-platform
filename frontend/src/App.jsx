@@ -3,7 +3,7 @@ import SupportDashboard from './pages/SupportDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router";
 
 function App() {
   return (

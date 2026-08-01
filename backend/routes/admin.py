@@ -7,7 +7,10 @@ Covers:
   - Analytics (per-engineer stats, confidence breakdown, knowledge gaps)
   - Source analytics (which documents are cited most)
 """
-
+from backend.services.health_service import (
+    get_health_status
+)
+from backend.services.stats_service import get_stats
 from collections import Counter
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -18,8 +21,7 @@ from backend.services.auth_service import (
     create_user,
     list_engineers,
     set_active_status,
-    admin_reset_password,
-    get_user
+    admin_reset_password
 )
 from backend.services.session_service import (
     get_all_sessions,
@@ -29,9 +31,14 @@ from backend.services.history_service import load_history, get_user_history
 
 import secrets
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+# router = APIRouter(prefix="/admin", tags=["Admin"])
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+
+router = APIRouter(
+    prefix="/admin",
+    tags=["Admin"]
+)
+
 
 
 def _get_engineer_only_history():
@@ -266,21 +273,38 @@ def get_knowledge_gaps(current_user: dict = Depends(require_admin)):
     try:
         history = _get_engineer_only_history()
 
-        low_confidence_questions = [
-            h["question"]
-            for h in history
+        low_confidence_entries = [
+            h for h in history
             if h.get("confidence") == "Low"
         ]
 
-        total_low = len(low_confidence_questions)
+        total_low = len(low_confidence_entries)
         total_questions = len(history)
 
-        gap_counter = Counter(low_confidence_questions)
+        # Grouped on normalized text (collapsed whitespace, case-folded),
+        # not the raw question string. Counter() on raw strings previously
+        # undercounted real repeats — the exact same question asked with
+        # different casing or an extra space/newline (very easy to do when
+        # retyping instead of copy-pasting) was silently treated as two
+        # different questions, each showing count=1 instead of one
+        # question showing count=2. The first-seen raw phrasing is kept
+        # for display so the table still reads naturally.
+        grouped = {}
 
-        gaps = [
-            {"question": question, "count": count}
-            for question, count in gap_counter.most_common(20)
-        ]
+        for entry in low_confidence_entries:
+            raw_question = entry["question"]
+            key = " ".join(raw_question.split()).lower()
+
+            if key not in grouped:
+                grouped[key] = {"question": raw_question, "count": 0}
+
+            grouped[key]["count"] += 1
+
+        gaps = sorted(
+            grouped.values(),
+            key=lambda g: g["count"],
+            reverse=True
+        )[:20]
 
         return {
             "total_unanswered": total_low,
@@ -335,19 +359,25 @@ def get_source_analytics(current_user: dict = Depends(require_admin)):
 
 
 @router.get("/system-health")
-def get_system_health(current_user: dict = Depends(require_admin)):
+def get_system_health(
+    current_user: dict = Depends(require_admin)
+):
     try:
-        from backend.services.health_service import get_health
-        from backend.services.stats_service import get_stats
-
         return {
-            "health": get_health(),
+            "health": get_health_status(),
             "stats": get_stats()
         }
 
-    except Exception as e:
-        log_error(f"System health failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve system health.")
+    except Exception as exc:
+        log_error(
+            "System health failed: "
+            f"{type(exc).__name__}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve system health."
+        ) from exc
 
 
 @router.get("/history/{username}")

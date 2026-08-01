@@ -1,60 +1,217 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from backend.services.document_registry import (
-    load_registry,
-    save_registry
+from backend.services.auth_service import require_admin
+from backend.services.document_registry import load_registry, save_registry
+from backend.services.faiss_service import (
+    delete_faiss_index,
+    load_faiss_index,
+    save_faiss_index
 )
-
-from backend.services.vector_store import (
-    load_metadata,
-    save_metadata
-)
-
-import os
+from backend.services.file_path_service import resolve_raw_document_path
+from backend.services.logging_service import log_error, log_info
 from backend.services.reindex_service import (
+    build_index_from_metadata,
+    persist_rebuilt_index,
     rebuild_index
 )
+from backend.services.vector_store import load_metadata, save_metadata
+
 
 router = APIRouter()
 
 
+def _load_consistent_original_index(original_metadata):
+    index = load_faiss_index()
+    expected_count = len(original_metadata)
+
+    if expected_count == 0:
+        if index is not None:
+            index = rebuild_index()
+
+        return index
+
+    if index is None or index.ntotal != expected_count:
+        index = rebuild_index()
+
+    if index is None or index.ntotal != expected_count:
+        actual_count = 0 if index is None else index.ntotal
+
+        raise RuntimeError(
+            "Original FAISS/metadata consistency could not be restored: "
+            f"vectors={actual_count}, metadata={expected_count}"
+        )
+
+    return index
+
+
+def _restore_deletion_state(
+    original_metadata,
+    original_registry,
+    original_index
+):
+    rollback_errors = []
+
+    operations = [
+        (
+            "metadata",
+            lambda: save_metadata(original_metadata)
+        ),
+        (
+            "registry",
+            lambda: save_registry(original_registry)
+        ),
+        (
+            "FAISS index",
+            lambda: (
+                delete_faiss_index()
+                if original_index is None
+                else save_faiss_index(original_index)
+            )
+        )
+    ]
+
+    for name, operation in operations:
+        try:
+            operation()
+        except Exception as exc:
+            rollback_errors.append(f"{name}: {exc}")
+
+    if rollback_errors:
+        raise RuntimeError(
+            "Deletion rollback failed: "
+            + "; ".join(rollback_errors)
+        )
+
+
 @router.delete("/document/{filename}")
-def delete_document(filename: str):
+def delete_document(
+    filename: str,
+    current_user: dict = Depends(require_admin)
+):
+    try:
+        file_path = resolve_raw_document_path(filename)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
 
-    # Delete raw file
-    file_path = f"data/raw/{filename}"
+    safe_filename = file_path.name
 
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    try:
+        original_registry = load_registry()
+        original_metadata = load_metadata()
 
-    # Delete registry entry
-    registry = load_registry()
+        file_exists = file_path.is_file()
 
-    updated_registry = []
+        registry_entry_exists = any(
+            document["document_name"] == safe_filename
+            for document in original_registry
+        )
 
-    for doc in registry:
+        metadata_exists = any(
+            chunk["document_name"] == safe_filename
+            for chunk in original_metadata
+        )
 
-        if doc["document_name"] != filename:
-            updated_registry.append(doc)
+        if not (
+            file_exists
+            or registry_entry_exists
+            or metadata_exists
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail="Document not found"
+            )
 
-    save_registry(updated_registry)
+        original_index = _load_consistent_original_index(
+            original_metadata
+        )
 
-    # Delete metadata chunks
-    metadata = load_metadata()
+        proposed_registry = [
+            document
+            for document in original_registry
+            if document["document_name"] != safe_filename
+        ]
 
-    updated_metadata = []
+        proposed_metadata = [
+            chunk
+            for chunk in original_metadata
+            if chunk["document_name"] != safe_filename
+        ]
 
-    for chunk in metadata:
+        removed_chunks = (
+            len(original_metadata) - len(proposed_metadata)
+        )
 
-        if chunk["document_name"] != filename:
-            updated_metadata.append(chunk)
+        # Build replacement index before changing persisted state.
+        staged_index = build_index_from_metadata(
+            proposed_metadata
+        )
 
-    save_metadata(updated_metadata)
+        try:
+            persist_rebuilt_index(staged_index)
+            save_metadata(proposed_metadata)
+            save_registry(proposed_registry)
 
+            # Raw file is removed only after index and JSON updates succeed.
+            if file_exists:
+                file_path.unlink()
 
+        except Exception as commit_exc:
+            try:
+                _restore_deletion_state(
+                    original_metadata,
+                    original_registry,
+                    original_index
+                )
 
-    rebuild_index()
-    return {
-        "message": "Document deleted successfully",
-        "filename": filename
-    }
+            except Exception as rollback_exc:
+                log_error(
+                    f"Document deletion commit failed: {commit_exc}; "
+                    f"rollback also failed: {rollback_exc}"
+                )
+
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        "Document deletion failed and storage "
+                        "recovery was incomplete."
+                    )
+                ) from commit_exc
+
+            log_error(
+                f"Document deletion failed and was rolled back: "
+                f"{commit_exc}"
+            )
+
+            raise HTTPException(
+                status_code=500,
+                detail="Unable to delete document."
+            ) from commit_exc
+
+        log_info(
+            f"Document deleted: {safe_filename} "
+            f"chunks_removed={removed_chunks} "
+            f"by admin={current_user['username']}"
+        )
+
+        return {
+            "message": "Document deleted successfully",
+            "filename": safe_filename,
+            "removed_chunks": removed_chunks,
+            "remaining_vectors": (
+                0 if staged_index is None else staged_index.ntotal
+            )
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        log_error(str(exc))
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete document."
+        ) from exc

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
-// import { Link } from "react-router-dom";
+// import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import SupportSidebar from "../components/SupportSidebar";
 import IncidentWorkspace from "../components/IncidentWorkspace";

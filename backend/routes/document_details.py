@@ -1,13 +1,18 @@
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from backend.services.auth_service import get_current_user
 from backend.services.vector_store import load_metadata
 
 router = APIRouter()
 
 
 @router.get("/document/{filename}")
-def get_document(filename: str):
+def get_document(
+    filename: str,
+    current_user: dict = Depends(get_current_user)
+):
 
     metadata = load_metadata()
 

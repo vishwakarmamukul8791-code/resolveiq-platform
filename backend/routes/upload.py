@@ -1,58 +1,59 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-import os
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from backend.services.logging_service import (
-    log_info,
-    log_error
-)
+from backend.services.auth_service import require_admin
+from backend.services.file_path_service import resolve_raw_document_path
+from backend.services.logging_service import log_error, log_info
+
 
 router = APIRouter()
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-
-    allowed_extensions = [".pdf", ".csv", ".txt"]
-
-    if not file.filename.lower().endswith(tuple(allowed_extensions)):
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(require_admin)
+):
+    try:
+        file_path = resolve_raw_document_path(file.filename)
+    except ValueError as exc:
         raise HTTPException(
             status_code=400,
-            detail="Unsupported file type"
+            detail=str(exc)
+        ) from exc
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    original_path = file_path
+    counter = 1
+
+    while file_path.exists():
+        file_path = original_path.with_name(
+            f"{original_path.stem}({counter}){original_path.suffix}"
         )
+        counter += 1
 
     try:
+        content = await file.read()
 
-        name, extension = os.path.splitext(file.filename)
-
-        os.makedirs("data/raw", exist_ok=True)
-        file_path = f"data/raw/{file.filename}"
-
-        counter = 1
-
-        while os.path.exists(file_path):
-
-            file_path = f"data/raw/{name}({counter}){extension}"
-
-            counter += 1
-
-        with open(file_path, "wb") as buffer:
-
-            content = await file.read()
-
+        with file_path.open("wb") as buffer:
             buffer.write(content)
 
-        log_info(f"File uploaded successfully: {file.filename}")
+        safe_filename = file_path.name
+
+        log_info(
+            f"File uploaded successfully: {safe_filename} "
+            f"by admin={current_user['username']}"
+        )
 
         return {
             "message": "File uploaded successfully",
-            "filename": os.path.basename(file_path)
+            "filename": safe_filename
         }
 
-    except Exception as e:
-
-        log_error(str(e))
+    except Exception as exc:
+        log_error(str(exc))
 
         raise HTTPException(
             status_code=500,
             detail="Unable to upload file."
-        )
+        ) from exc

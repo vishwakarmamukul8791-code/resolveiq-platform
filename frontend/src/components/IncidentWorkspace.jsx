@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { askApi, documentsApi, ApiError } from "../api/client";
+import { askApi, documentsApi, historyApi, ApiError } from "../api/client";
 import SourceViewerModal from "./SourceViewerModal";
 import "../styles/incident-workspace.css";
 
@@ -137,6 +137,14 @@ function IncidentWorkspace({ resetToken, loadedEntry, onAsked }) {
   const [error, setError] = useState(null);
   const [viewingSource, setViewingSource] = useState(null);
 
+  // The active thread. null = not started yet (or "New Investigation" was
+  // just clicked) — the next successful /ask starts a fresh thread and
+  // this gets set from its response. Once set, every further question in
+  // this workspace session is sent with the same id, so they land in the
+  // same history entry instead of each becoming its own sidebar row.
+  const [conversationId, setConversationId] = useState(null);
+  const [threadLoading, setThreadLoading] = useState(false);
+
   const textareaRef = useRef(null);
   const threadEndRef = useRef(null);
 
@@ -149,42 +157,72 @@ function IncidentWorkspace({ resetToken, loadedEntry, onAsked }) {
       .catch(() => {});
   }, []);
 
-  // "New Investigation" in the sidebar bumps resetToken — clear the thread.
+  // "New Investigation" in the sidebar bumps resetToken — clear the thread
+  // and let the next question start a brand new conversation_id.
   useEffect(() => {
     if (resetToken === undefined) return;
     setExchanges([]);
     setQuery("");
     setError(null);
+    setConversationId(null);
   }, [resetToken]);
 
-  // Selecting a past investigation from the sidebar loads it as a
-  // read-only single-exchange thread. History only ever stores source
-  // *names* (see history_service.py), not page numbers — that detail
-  // only exists on a fresh /ask response — so it's normalized into the
-  // same {document_name, page_number, source_location} shape ExchangeCard
+  // Selecting a past investigation from the sidebar loads the WHOLE
+  // conversation thread, not just one question — same idea as opening a
+  // past chat in Claude. conversationId is set to the loaded thread's id
+  // so that asking a follow-up here continues appending to that same
+  // thread instead of starting a new sidebar entry.
+  //
+  // History only ever stores source *names* (see history_service.py), not
+  // page numbers — that detail only exists on a fresh /ask response — so
+  // each message's sources are normalized into the same
+  // {document_name, page_number, source_location} shape ExchangeCard
   // expects, with page_number/source_location left null. The source
   // viewer already handles a null page_number by falling back to showing
   // the whole document.
   useEffect(() => {
     if (!loadedEntry) return;
-    setExchanges([
-      {
-        id: loadedEntry.id,
-        question: loadedEntry.question,
-        pending: false,
-        answer: loadedEntry.answer,
-        confidence: loadedEntry.confidence,
-        sources: (loadedEntry.sources ?? []).map((name) => ({
-          document_name: name,
-          page_number: null,
-          source_location: null,
-        })),
-        rewrittenQuery: loadedEntry.rewritten_query,
-        topScore: null,
-        supportingChunks: null,
-      },
-    ]);
+
+    let cancelled = false;
+    setThreadLoading(true);
     setError(null);
+    setExchanges([]);
+
+    historyApi
+      .getConversation(loadedEntry.id)
+      .then((data) => {
+        if (cancelled) return;
+
+        setExchanges(
+          (data.messages ?? []).map((message) => ({
+            id: message.id,
+            question: message.question,
+            pending: false,
+            answer: message.answer,
+            confidence: message.confidence,
+            sources: (message.sources ?? []).map((name) => ({
+              document_name: name,
+              page_number: null,
+              source_location: null,
+            })),
+            rewrittenQuery: message.rewritten_query,
+            topScore: null,
+            supportingChunks: null,
+          }))
+        );
+        setConversationId(data.conversation_id);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : "Could not load this conversation.");
+      })
+      .finally(() => {
+        if (!cancelled) setThreadLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [loadedEntry]);
 
   // Auto-grow the textarea with content instead of scrolling inside a
@@ -218,6 +256,7 @@ function IncidentWorkspace({ resetToken, loadedEntry, onAsked }) {
       const data = await askApi.ask(trimmed, {
         documentName: documentFilter || undefined,
         sessionId,
+        conversationId,
       });
 
       setExchanges((prev) =>
@@ -237,8 +276,17 @@ function IncidentWorkspace({ resetToken, loadedEntry, onAsked }) {
         )
       );
 
+      // First question in this workspace session: adopt the thread id the
+      // backend just created, so every question after this one — and any
+      // later visit via the sidebar — stays part of the same conversation.
+      if (!conversationId) {
+        setConversationId(data.conversation_id);
+      }
+
       // The backend already persisted this to history — let the sidebar
-      // know so its list refetches and shows the new entry immediately.
+      // know so its list refetches. On the first question this adds a new
+      // row; on a follow-up it just updates the existing thread's row
+      // (same conversation_id), it doesn't add a second one.
       onAsked?.();
     } catch (err) {
       // Drop the pending bubble and put the question back in the box so
@@ -262,8 +310,10 @@ function IncidentWorkspace({ resetToken, loadedEntry, onAsked }) {
     <section className={`incident-workspace ${hasStarted ? "workspace-active" : "workspace-empty"}`}>
       {!hasStarted && (
         <div className="workspace-intro">
-          <h1>What incident are you investigating?</h1>
-          <p>Ask about an error code, a symptom, or paste details from a ticket.</p>
+          <h1>{threadLoading ? "Loading conversation…" : "What incident are you investigating?"}</h1>
+          {!threadLoading && (
+            <p>Ask about an error code, a symptom, or paste details from a ticket.</p>
+          )}
         </div>
       )}
 

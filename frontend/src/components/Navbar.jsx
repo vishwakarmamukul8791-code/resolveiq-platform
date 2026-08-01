@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router";
 import ThemeToggle from "./ThemeToggle";
 import brandMark from "../assets/resolveiq-mark.png";
 import "../styles/navbar.css";
@@ -12,7 +12,7 @@ function Navbar() {
 
         <div>
           <h3>ResolveIQ</h3>
-          <span>Enterprise AI Incident Intelligence Platform</span>
+          <span>AI-Powered Incident Resolution Platform</span>
         </div>
       </Link>
 
@@ -29,3 +29,4 @@ function Navbar() {
 }
 
 export default Navbar;
+
