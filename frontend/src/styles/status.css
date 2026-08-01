@@ -8,54 +8,105 @@
     color: white;
 }
 
+
 .status-heading {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     margin-bottom: 15px;
 }
 
-.status-heading span {
+
+.status-heading > span {
+    color: var(--color-text-on-dark);
+
     font-size: 11px;
     letter-spacing: 1.5px;
-    color: var(--color-text-on-dark);
 }
 
-.status-heading small {
-    color: var(--color-success-bright);
+
+.platform-status-label {
     font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
 }
+
+
+.platform-status-label.checking {
+    color: var(--color-text-faint);
+}
+
+
+.platform-status-label.online {
+    color: var(--color-success-bright);
+}
+
+
+.platform-status-label.offline {
+    color: var(--color-danger);
+}
+
 
 .status-items {
     display: flex;
-    gap: 30px;
+    flex-wrap: wrap;
+    gap: 14px 30px;
 }
 
-.status-items div {
+
+.status-item {
     display: flex;
     align-items: center;
     gap: 8px;
+
+    min-width: 0;
+
     font-size: 12px;
 }
 
-.status-items i {
+
+.status-item i {
     width: 7px;
     height: 7px;
+    flex-shrink: 0;
+
     background: var(--color-success-dot);
     border-radius: 50%;
 }
 
-.status-items span {
+
+.status-item span {
     color: var(--color-text-on-dark);
 }
 
-.status-items strong {
+
+.status-item strong {
     color: var(--color-success-bright);
 }
 
-@media (max-width: 900px) {
 
+.api-status.checking i {
+    background: var(--color-text-faint);
+}
+
+
+.api-status.checking strong {
+    color: var(--color-text-faint);
+}
+
+
+.api-status.offline i {
+    background: var(--color-danger);
+}
+
+
+.api-status.offline strong {
+    color: var(--color-danger);
+}
+
+
+@media (max-width: 900px) {
     .status-items {
         flex-direction: column;
         gap: 10px;

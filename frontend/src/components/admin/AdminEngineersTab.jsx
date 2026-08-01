@@ -1,12 +1,37 @@
-// frontend/src/components/admin/AdminEngineersTab.jsx
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
-import * as XLSX from "xlsx";
-import { adminApi, ApiError } from "../../api/client";
-import { formatRelativeTime, formatDuration } from "../../utils/formatTime";
+import {
+  adminApi,
+  ApiError,
+} from "../../api/client";
+
+import {
+  formatDuration,
+  formatRelativeTime,
+} from "../../utils/formatTime";
+
 import CreateEngineerModal from "./CreateEngineerModal";
 import TempPasswordModal from "./TempPasswordModal";
+
 import "../../styles/admin-modals.css";
+
+
+function escapeCsvCell(value) {
+  const text = String(value ?? "");
+
+  // Prevent spreadsheet formula injection.
+  const safeText = /^[\s]*[=+\-@]/.test(text)
+    ? `'${text}`
+    : text;
+
+  return `"${safeText.replace(/"/g, '""')}"`;
+}
+
 
 function AdminEngineersTab() {
   const [engineers, setEngineers] = useState([]);
@@ -14,74 +39,120 @@ function AdminEngineersTab() {
   const [error, setError] = useState(null);
 
   const [search, setSearch] = useState("");
-  const [pendingUsername, setPendingUsername] = useState(null);
-  const [actionError, setActionError] = useState(null);
+  const [pendingUsername, setPendingUsername] =
+    useState(null);
+  const [actionError, setActionError] =
+    useState(null);
 
-  const [showCreate, setShowCreate] = useState(false);
-  const [tempPasswordInfo, setTempPasswordInfo] = useState(null);
+  const [showCreate, setShowCreate] =
+    useState(false);
+  const [tempPasswordInfo, setTempPasswordInfo] =
+    useState(null);
 
-  const loadEngineers = useCallback(() => {
-    setStatus("loading");
-    adminApi
-      .listEngineers()
-      .then((data) => {
-        setEngineers(data.engineers ?? []);
-        setStatus("ready");
-      })
-      .catch((err) => {
-        setError(err instanceof ApiError ? err.message : "Could not load engineers.");
-        setStatus("error");
-      });
+  const loadEngineers = useCallback(async () => {
+    try {
+      const data = await adminApi.listEngineers();
+
+      setEngineers(data.engineers ?? []);
+      setError(null);
+      setStatus("ready");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not load engineers."
+      );
+
+      setStatus("error");
+    }
   }, []);
 
   useEffect(() => {
-    loadEngineers();
+    void loadEngineers();
   }, [loadEngineers]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return engineers;
-    return engineers.filter((e) => e.username.toLowerCase().includes(q));
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return engineers;
+    }
+
+    return engineers.filter((engineer) =>
+      engineer.username
+        .toLowerCase()
+        .includes(query)
+    );
   }, [engineers, search]);
 
   async function handleToggleActive(engineer) {
     setActionError(null);
     setPendingUsername(engineer.username);
+
     try {
-      const result = await adminApi.setActive(engineer.username, !engineer.is_active);
-      setEngineers((prev) =>
-        prev.map((e) =>
-          e.username === engineer.username ? { ...e, is_active: result.is_active } : e
+      const result = await adminApi.setActive(
+        engineer.username,
+        !engineer.is_active
+      );
+
+      setEngineers((currentEngineers) =>
+        currentEngineers.map((current) =>
+          current.username === engineer.username
+            ? {
+                ...current,
+                is_active: result.is_active,
+              }
+            : current
         )
       );
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Could not update account status.");
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not update account status."
+      );
     } finally {
       setPendingUsername(null);
     }
   }
 
   async function handleResetPassword(engineer) {
-    if (
-      !window.confirm(
-        `Reset ${engineer.username}'s password? They'll need to set a new one at next login.`
-      )
-    ) {
+    const confirmed = window.confirm(
+      `Reset ${engineer.username}'s password? ` +
+        "They'll need to set a new one at next login."
+    );
+
+    if (!confirmed) {
       return;
     }
 
     setActionError(null);
     setPendingUsername(engineer.username);
+
     try {
-      const result = await adminApi.resetEngineerPassword(engineer.username);
-      setEngineers((prev) =>
-        prev.map((e) =>
-          e.username === engineer.username ? { ...e, must_reset_password: true } : e
+      const result =
+        await adminApi.resetEngineerPassword(
+          engineer.username
+        );
+
+      setEngineers((currentEngineers) =>
+        currentEngineers.map((current) =>
+          current.username === engineer.username
+            ? {
+                ...current,
+                must_reset_password: true,
+              }
+            : current
         )
       );
+
       setTempPasswordInfo(result);
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Could not reset password.");
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not reset password."
+      );
     } finally {
       setPendingUsername(null);
     }
@@ -90,34 +161,77 @@ function AdminEngineersTab() {
   function handleCreated(result) {
     setShowCreate(false);
     setTempPasswordInfo(result);
-    loadEngineers();
+
+    void loadEngineers();
   }
 
   function handleExport() {
-    const rows = engineers.map((e) => ({
-      Username: e.username,
-      Status: e.is_active ? "Active" : "Inactive",
-      "Must Reset Password": e.must_reset_password ? "Yes" : "No",
-      "Total Sessions": e.total_sessions,
-      "Total Questions": e.total_questions,
-      "High Confidence": e.high_confidence,
-      "Medium Confidence": e.medium_confidence,
-      "Low Confidence": e.low_confidence,
-      "Total Minutes": e.total_minutes,
-      "Last Login": e.last_login ?? "Never",
-      "Created At": e.created_at,
-    }));
+    const headers = [
+      "Username",
+      "Status",
+      "Must Reset Password",
+      "Total Sessions",
+      "Total Questions",
+      "High Confidence",
+      "Medium Confidence",
+      "Low Confidence",
+      "Total Minutes",
+      "Last Login",
+      "Created At",
+    ];
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Engineers");
-    XLSX.writeFile(workbook, `resolveiq-engineers-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const rows = engineers.map((engineer) => [
+      engineer.username,
+      engineer.is_active ? "Active" : "Inactive",
+      engineer.must_reset_password ? "Yes" : "No",
+      engineer.total_sessions,
+      engineer.total_questions,
+      engineer.high_confidence,
+      engineer.medium_confidence,
+      engineer.low_confidence,
+      engineer.total_minutes,
+      engineer.last_login ?? "Never",
+      engineer.created_at,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row.map(escapeCsvCell).join(",")
+      )
+      .join("\r\n");
+
+    const blob = new Blob(
+      ["\uFEFF", csv],
+      {
+        type: "text/csv;charset=utf-8",
+      }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download =
+      `resolveiq-engineers-` +
+      `${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 0);
   }
 
   if (status === "loading") {
     return (
       <div className="admin-panel">
-        <p className="admin-hint">Loading engineers…</p>
+        <p className="admin-hint">
+          Loading engineers…
+        </p>
       </div>
     );
   }
@@ -125,7 +239,20 @@ function AdminEngineersTab() {
   if (status === "error") {
     return (
       <div className="admin-panel">
-        <p className="admin-hint error">{error}</p>
+        <p className="admin-hint error">
+          {error}
+        </p>
+
+        <button
+          type="button"
+          className="row-action retry-button"
+          onClick={() => {
+            setStatus("loading");
+            void loadEngineers();
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -134,12 +261,19 @@ function AdminEngineersTab() {
     <section className="admin-panel employee-panel">
       <div className="panel-heading">
         <div>
-          <span className="section-label">ENGINEERS</span>
+          <span className="section-label">
+            ENGINEERS
+          </span>
+
           <h2>Support engineer accounts</h2>
         </div>
 
         <div className="panel-actions">
-          <button type="button" className="export-button secondary" onClick={() => setShowCreate(true)}>
+          <button
+            type="button"
+            className="export-button secondary"
+            onClick={() => setShowCreate(true)}
+          >
             + Add Engineer
           </button>
 
@@ -149,22 +283,31 @@ function AdminEngineersTab() {
             onClick={handleExport}
             disabled={engineers.length === 0}
           >
-            ↓ Export Excel
+            ↓ Export CSV
           </button>
         </div>
       </div>
 
-      {actionError && <p className="admin-hint error">{actionError}</p>}
+      {actionError && (
+        <p className="admin-hint error">
+          {actionError}
+        </p>
+      )}
 
       <div className="table-toolbar">
         <input
-          type="text"
+          type="search"
+          aria-label="Search engineers"
           placeholder="Search by username..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
         />
+
         <span>
-          Showing {filtered.length} of {engineers.length} engineers
+          Showing {filtered.length} of{" "}
+          {engineers.length} engineers
         </span>
       </div>
 
@@ -186,60 +329,121 @@ function AdminEngineersTab() {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty-row">
-                  {engineers.length === 0 ? "No engineer accounts yet." : "No matches."}
+                <td
+                  colSpan={8}
+                  className="empty-row"
+                >
+                  {engineers.length === 0
+                    ? "No engineer accounts yet."
+                    : "No matches."}
                 </td>
               </tr>
             )}
 
-            {filtered.map((e) => {
+            {filtered.map((engineer) => {
               const highRate =
-                e.total_questions > 0
-                  ? `${Math.round((e.high_confidence / e.total_questions) * 100)}%`
+                engineer.total_questions > 0
+                  ? `${Math.round(
+                      (
+                        engineer.high_confidence /
+                        engineer.total_questions
+                      ) * 100
+                    )}%`
                   : "—";
-              const isPending = pendingUsername === e.username;
+
+              const isPending =
+                pendingUsername ===
+                engineer.username;
 
               return (
-                <tr key={e.username}>
+                <tr key={engineer.username}>
                   <td>
                     <div className="employee-name">
-                      <div className="employee-avatar">{e.username.charAt(0).toUpperCase()}</div>
+                      <div className="employee-avatar">
+                        {engineer.username
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+
                       <div>
-                        <strong>{e.username}</strong>
-                        {e.must_reset_password && (
-                          <span className="must-reset-tag">Must reset password</span>
+                        <strong>
+                          {engineer.username}
+                        </strong>
+
+                        {engineer.must_reset_password && (
+                          <span className="must-reset-tag">
+                            Must reset password
+                          </span>
                         )}
                       </div>
                     </div>
                   </td>
 
                   <td>
-                    <span className={`status ${e.is_active ? "active" : "completed"}`}>
-                      {e.is_active ? "Active" : "Inactive"}
+                    <span
+                      className={
+                        `status ${
+                          engineer.is_active
+                            ? "active"
+                            : "completed"
+                        }`
+                      }
+                    >
+                      {engineer.is_active
+                        ? "Active"
+                        : "Inactive"}
                     </span>
                   </td>
 
-                  <td>{e.total_sessions}</td>
-                  <td className="question-count">{e.total_questions}</td>
+                  <td>
+                    {engineer.total_sessions}
+                  </td>
+
+                  <td className="question-count">
+                    {engineer.total_questions}
+                  </td>
+
                   <td>{highRate}</td>
-                  <td>{formatDuration(e.total_minutes)}</td>
-                  <td>{e.last_login ? formatRelativeTime(e.last_login) : "Never"}</td>
+
+                  <td>
+                    {formatDuration(
+                      engineer.total_minutes
+                    )}
+                  </td>
+
+                  <td>
+                    {engineer.last_login
+                      ? formatRelativeTime(
+                          engineer.last_login
+                        )
+                      : "Never"}
+                  </td>
 
                   <td>
                     <div className="row-actions">
                       <button
                         type="button"
                         className="row-action"
-                        onClick={() => handleToggleActive(e)}
+                        onClick={() =>
+                          handleToggleActive(
+                            engineer
+                          )
+                        }
                         disabled={isPending}
                       >
-                        {e.is_active ? "Disable" : "Enable"}
+                        {engineer.is_active
+                          ? "Disable"
+                          : "Enable"}
                       </button>
 
                       <button
                         type="button"
                         className="row-action"
-                        onClick={() => handleResetPassword(e)}
+                        onClick={() =>
+                          handleResetPassword(
+                            engineer
+                          )
+                        }
                         disabled={isPending}
                       >
                         Reset password
@@ -254,15 +458,28 @@ function AdminEngineersTab() {
       </div>
 
       {showCreate && (
-        <CreateEngineerModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />
+        <CreateEngineerModal
+          onClose={() =>
+            setShowCreate(false)
+          }
+          onCreated={handleCreated}
+        />
       )}
 
       {tempPasswordInfo && (
         <TempPasswordModal
-          username={tempPasswordInfo.username}
-          tempPassword={tempPasswordInfo.temp_password}
-          message={tempPasswordInfo.message}
-          onClose={() => setTempPasswordInfo(null)}
+          username={
+            tempPasswordInfo.username
+          }
+          tempPassword={
+            tempPasswordInfo.temp_password
+          }
+          message={
+            tempPasswordInfo.message
+          }
+          onClose={() =>
+            setTempPasswordInfo(null)
+          }
         />
       )}
     </section>

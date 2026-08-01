@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from backend.services.auth_service import require_admin
 from backend.services.logging_service import log_info, log_error
 from backend.services.query_rewrite_service import rewrite_query
 from backend.services.retrieval_service import search_similar_chunks
@@ -21,7 +22,7 @@ def _format_results(raw_results):
     whichever score field that method actually produced — left in its
     NATIVE scale (raw distance / bm25_score / rrf_score / rerank_score),
     not normalized. Seeing the real, incomparable scales side by side is
-    the actual point of a debug view — Task 8's 1/(1+distance) flip still
+    the purpose of this debug view. Distance normalization still
     happens downstream in build_retrieval_response for confidence, but
     hiding the raw numbers here would defeat the purpose of this endpoint.
     """
@@ -57,7 +58,8 @@ def _format_results(raw_results):
 def debug_retrieval(
     query: str,
     document_name: str | None = None,
-    rewritten_query: str | None = None
+    rewritten_query: str | None = None,
+    current_user: dict = Depends(require_admin)
 ):
     """
     Admin-facing view of retrieval internals for a single query — shows
@@ -76,7 +78,7 @@ def debug_retrieval(
     scores. That means this endpoint, on its own, can't reliably reproduce
     a SPECIFIC past /ask response just by re-submitting the same original
     query. To actually debug a past /ask answer: pull that request's
-    "rewritten_query" from history.json (saved there since Task 11) and
+    "rewritten_query" from history.json and
     pass it in via the optional rewritten_query param below — that skips
     the live rewrite entirely and replays retrieval exactly as it happened
     that time. Omit it to explore a query fresh instead.

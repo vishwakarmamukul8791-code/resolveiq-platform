@@ -1,63 +1,80 @@
 import os
 
-from backend.services.faiss_service import load_faiss_index
-from backend.services.vector_store import load_metadata
 from backend.services.document_registry import load_registry
-from backend.services.logging_service import (
-    log_info,
-    log_error
-)
+from backend.services.faiss_service import load_faiss_index
+from backend.services.logging_service import log_error
+from backend.services.vector_store import load_metadata
+
 
 def get_health_status():
-
     health = {}
 
-    # FAISS
+    # FAISS index
     try:
-        load_faiss_index()
-        health["faiss_index"] = "Loaded"
-    except Exception as e:
-        log_error(str(e))
+        index = load_faiss_index()
+
+        health["faiss_index"] = (
+            "Loaded"
+            if index is not None
+            else "Missing"
+        )
+
+    except Exception as exc:
+        log_error(
+            "FAISS health check failed: "
+            f"{type(exc).__name__}"
+        )
         health["faiss_index"] = "Missing"
 
-    # Metadata
+    # Metadata store
     try:
         load_metadata()
         health["metadata"] = "Loaded"
-    except Exception as e:
-        log_error(str(e))
+
+    except Exception as exc:
+        log_error(
+            "Metadata health check failed: "
+            f"{type(exc).__name__}"
+        )
         health["metadata"] = "Missing"
 
-    # Registry
+    # Document registry
     try:
         load_registry()
         health["registry"] = "Loaded"
-    except Exception as e:
-        log_error(str(e))
+
+    except Exception as exc:
+        log_error(
+            "Registry health check failed: "
+            f"{type(exc).__name__}"
+        )
         health["registry"] = "Missing"
 
-    # Gemini API
-    if os.getenv("GEMINI_API_KEY"):
-        health["gemini_api"] = "Configured"
-    else:
-        health["gemini_api"] = "Missing"
+    # Required configuration
+    health["gemini_api"] = (
+        "Configured"
+        if os.getenv("GEMINI_API_KEY")
+        else "Missing"
+    )
 
+    health["jwt_secret"] = (
+        "Configured"
+        if os.getenv("JWT_SECRET_KEY")
+        else "Missing"
+    )
 
-    # JWT secret (required for auth)
-    if os.getenv("JWT_SECRET_KEY"):
-        health["jwt_secret"] = "Configured"
-    else:
-        health["jwt_secret"] = "Missing"    
+    required_states = (
+        health["faiss_index"] == "Loaded",
+        health["metadata"] == "Loaded",
+        health["registry"] == "Loaded",
+        health["gemini_api"] == "Configured",
+        health["jwt_secret"] == "Configured",
+    )
 
-    if (
-        health["faiss_index"] == "Loaded"
-        and health["metadata"] == "Loaded"
-        and health["registry"] == "Loaded"
-        and health["gemini_api"] == "Configured"
-        and health["jwt_secret"] == "Configured"   # ← this line was missing
-    ):
-        health["status"] = "Healthy"
-    else:
-        health["status"] = "Unhealthy"
+    health["status"] = (
+        "Healthy"
+        if all(required_states)
+        else "Unhealthy"
+    )
 
     return health

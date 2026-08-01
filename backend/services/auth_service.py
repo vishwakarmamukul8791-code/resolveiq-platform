@@ -17,9 +17,9 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 12
 
 # NIST/OWASP minimum for PBKDF2-HMAC-SHA256.
-# Interview answer: "Why not bcrypt?" — bcrypt requires a native C extension.
-# This project already hit one VC++ DLL mismatch on Windows (torch/VC++ issue).
-# PBKDF2 via hashlib is pure stdlib — zero compiled dependencies, same security
+# PBKDF2 is implemented through Python's standard hashlib module,
+# avoiding an additional native dependency while providing salted,
+# configurable password hashing.
 # guarantee at 200k iterations with SHA-256.
 PBKDF2_ITERATIONS = 200_000
 
@@ -184,9 +184,9 @@ def authenticate(username: str, password: str):
 
     Checks is_active — deactivated engineers are rejected at login.
     Existing tokens for deactivated engineers remain valid until expiry
-    (12h max). Acceptable tradeoff for this use case — immediate token
-    invalidation would require a token blacklist (Redis or DB), which is
-    infrastructure complexity not justified here.
+    (12h max). Immediate token invalidation would require server-side
+    token revocation or a blacklist, which is not implemented in the
+    current local-storage design.
     """
 
     users = _load_users()
@@ -275,7 +275,9 @@ def create_access_token(username: str, role: str) -> str:
     """
     Role is encoded directly in the JWT payload.
 
-    Interview answer: "Why not look up role from the database on each request?"
+    The role is stored in the signed JWT payload, avoiding a user-file lookup
+    on every authenticated request. Role changes take effect after the current
+    token expires.
     Because JWT is stateless by design — the token is self-contained. Encoding
     role avoids a file I/O lookup on every protected request. The tradeoff is
     that a role change doesn't take effect until the current token expires (12h).
@@ -343,10 +345,10 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     Dependency for admin-only routes.
     Use as: current_user: dict = Depends(require_admin)
 
-    Interview answer: "How do you enforce role-based access?"
-    FastAPI's dependency injection chains — require_admin calls get_current_user
-    internally, so every admin route automatically gets both auth and role check
-    in one Depends() call. No middleware needed, no decorator pattern.
+    Role-based access is enforced through FastAPI dependencies.
+    require_admin first authenticates the request and then verifies the user's
+    role before the route handler runs.
+
     """
 
     if current_user["role"] != "admin":

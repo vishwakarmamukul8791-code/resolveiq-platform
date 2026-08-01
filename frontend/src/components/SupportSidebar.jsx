@@ -44,7 +44,12 @@ function HistoryItem({ entry, isActive, onSelect, onTogglePin, onDelete }) {
   return (
     <div className={`history-item ${isActive ? "active" : ""}`}>
       <button type="button" className="history-item-main" onClick={() => onSelect(entry)}>
-        <p className="history-item-question">{entry.question}</p>
+        <p
+  className="history-item-question"
+  title={entry.question}
+>
+  {entry.question}
+</p>
         <span className="history-item-time">{formatRelativeTime(entry.created_at)}</span>
       </button>
 

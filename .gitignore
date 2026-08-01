@@ -1,36 +1,45 @@
-# Virtual Environment
+# Python virtual environments
 venv/
+.venv/
 
-# Environment Variables
+# Environment secrets
 .env
+.env.*
+!.env.example
 
-# Python Cache
+# Python generated files
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 
-# IDE
+# IDE files
 .vscode/
 .idea/
 
-# Runtime Data
+# Frontend generated files
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+# Runtime application data
+data/raw/
 data/vector_store/
 data/history/
+data/eval/
+data/users.json
+data/sessions.json
+data/document_registry.json
 
 # Logs
 *.log
+logs/
 
-# Operating System Files
+# Generated local files
+project_structure.txt
+
+# Operating-system files
 .DS_Store
 Thumbs.db
-
-data/raw/
-
-frontend/node_modules/
-frontend/dist/
-data/eval/
-
-data/users.jsondata/sessions.json
-data/document_registry.json
-data/sessions.json
-data/users.json

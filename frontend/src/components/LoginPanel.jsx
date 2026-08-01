@@ -1,7 +1,7 @@
 // frontend/src/components/LoginPanel.jsx
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../api/client";
 import "../styles/login-panel.css";

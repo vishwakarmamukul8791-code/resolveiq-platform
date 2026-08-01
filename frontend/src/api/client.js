@@ -1,23 +1,13 @@
-// frontend/src/api/client.js
-
 /**
- * Centralized API client for the Incident Resolution Assistant.
+ * Centralized API client for the ResolveIQ frontend.
  *
- * Design decisions (interview-relevant):
- * - Plain fetch, no axios (matches existing project constraint) — this file
- *   is the ONE place that would need to change if that ever flipped.
- * - Auth header injection is automatic and centralized here, not repeated
- *   in every component. Token lives in localStorage (survives refresh);
- *   the tradeoff is XSS-readable storage vs. httpOnly cookies — acceptable
- *   here since there's no XSS-prone user-generated HTML rendering anywhere
- *   in this app (all rendered content is either our own UI or LLM text
- *   rendered as plain text, never dangerouslySetInnerHTML).
- * - A single onUnauthorized() hook lets AuthContext react to token expiry
- *   (401) in one place instead of every component checking response.status.
- * - /auth/login, /auth/logout, /auth/reset-password use form-urlencoded
- *   bodies (backend uses FastAPI's OAuth2PasswordRequestForm / Form(...)).
- *   Every other endpoint uses JSON. This file hides that inconsistency
- *   from the rest of the app.
+ * All API requests pass through this module so authentication headers,
+ * timeout handling, error parsing, and backend configuration remain
+ * consistent across the application.
+ *
+ * Authentication tokens are stored in localStorage when "Remember me" is
+ * enabled and sessionStorage otherwise. Form-encoded and JSON requests are
+ * handled according to the corresponding FastAPI endpoint.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -150,10 +140,11 @@ async function request(
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      throw new ApiError(`Request timed out (${timeoutMs}ms): ${method} ${path}`, {
-        status: 0,
-      });
-    }
+      throw new ApiError(
+    "The request took too long. Please try again.",
+    { status: 0 }
+  );
+}
     // Network failure — wrong port, backend not running, CORS block, etc.
     throw new ApiError(
       `Could not reach the server at ${API_BASE_URL}. Is the backend running?`,
@@ -214,15 +205,32 @@ export const authApi = {
 
 // ── Core RAG ─────────────────────────────────────────────────────────────
 export const askApi = {
-  // 45s timeout, not the 15s default: /ask is a synchronous endpoint that
-  // can involve a query rewrite + hybrid retrieval + reranking + a Gemini
-  // call, all in one blocking request (documented tradeoff, see Section 12
-  // of the project doc — worth citing if this ever comes up in an interview).
-  ask(query, { documentName, sessionId, timeoutMs = 45000 } = {}) {
+  // /ask performs retrieval, reranking, and one bounded
+  // Gemini call. The client timeout is intentionally
+  // larger than the backend provider timeout so the API
+  // can return a structured error to the UI.
+  // Pass conversationId (from a previous /ask response) to keep a
+  // follow-up question in the same thread instead of starting a new one.
+  ask(query, { documentName, sessionId, conversationId, timeoutMs = 60000 } = {}) {
     const headers = {};
-    if (sessionId) headers["X-Session-Id"] = sessionId;
+
+    if (sessionId) {
+      headers["X-Session-Id"] = sessionId;
+    }
+
+    const json = { query };
+
+    if (documentName) {
+      json.document_name = documentName;
+    }
+
+    if (conversationId) {
+      json.conversation_id = conversationId;
+    }
+
     return request("/ask", {
-      params: { query, document_name: documentName },
+      method: "POST",
+      json,
       headers,
       timeoutMs,
     });
@@ -257,6 +265,11 @@ export const documentsApi = {
 export const historyApi = {
   list() {
     return request("/history");
+  },
+  // Full message list for one thread — used when a past investigation is
+  // selected from the sidebar, so the whole conversation loads.
+  getConversation(id) {
+    return request(`/history/${encodeURIComponent(id)}`);
   },
   pin(id) {
     return request(`/history/${encodeURIComponent(id)}/pin`, { method: "PATCH" });
@@ -312,7 +325,7 @@ export const adminApi = {
   },
 };
 
-// ── Debug (RAG internals — see flag above: unauthenticated server-side today) ─
+// ── Debug (RAG internals — admin-only server-side) ──────────────────────
 export const debugApi = {
   retrieval(query, { documentName, rewrittenQuery } = {}) {
     return request("/debug/retrieval", {

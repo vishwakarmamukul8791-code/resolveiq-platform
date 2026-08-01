@@ -13,12 +13,12 @@ This is what feeds:
   - GET /admin/analytics  (confidence distribution charts)
 
 Storage: data/sessions.json — a flat list of session records.
-No database needed at this scale. If sessions grow beyond ~50k records,
-this file approach would need replacing with SQLite or Postgres.
-That's a known, intentional tradeoff for the current version.
+Sessions are stored separately from conversation history because they have
+different data structures and query patterns.
 
-Interview answer: "Why not store sessions in the same file as history?"
-Sessions and history have different shapes and different query patterns.
+The current JSON-based storage is suitable for a single local instance.
+A database would be required for higher write volume, concurrency, or
+multiple backend instances.
 Admin needs session-level aggregates (total time, question count per
 engineer) AND history-level detail (exact questions asked) as separate
 API calls. Mixing them forces every query to filter/aggregate over

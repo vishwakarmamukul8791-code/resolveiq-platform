@@ -50,31 +50,104 @@ def get_user_history(username: str):
     return sorted(user_entries, key=lambda h: h["created_at"], reverse=True)
 
 
-def toggle_pin(entry_id: str, username: str):
+def _conversation_key(entry: dict) -> str:
     """
-    Flips the pinned flag on one entry. Ownership-checked — a user can
-    only pin/unpin their OWN entries, enforced here (not just in the route)
-    so the guarantee holds even if this function is called from elsewhere
-    later.
+    Groups messages into one thread. Every entry written by ask.py now
+    carries a conversation_id (all messages asked in the same workspace
+    session share one). Entries saved before this existed have no
+    conversation_id — each of those is simply its own one-message thread,
+    keyed by its own entry id, so old history keeps working unchanged.
+    """
 
-    Returns the updated entry, or None if not found / not owned by username.
+    return entry.get("conversation_id") or entry["id"]
+
+
+def get_user_conversations(username: str):
+    """
+    One row per conversation (thread), not per question — this is what the
+    sidebar lists. Title is the first question asked in the thread; the
+    displayed timestamp is the most recent message, so an active thread
+    sorts to the top the same way a chat app would.
+    """
+
+    entries = get_user_history(username)
+
+    groups = {}
+    order = []
+
+    for entry in entries:
+        key = _conversation_key(entry)
+
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+
+        groups[key].append(entry)
+
+    conversations = []
+
+    for key in order:
+        messages = sorted(groups[key], key=lambda h: h["created_at"])
+
+        conversations.append({
+            "id": key,
+            "question": messages[0]["question"],
+            "pinned": any(m.get("pinned") for m in messages),
+            "created_at": messages[-1]["created_at"],
+            "message_count": len(messages)
+        })
+
+    conversations.sort(key=lambda c: c["created_at"], reverse=True)
+
+    return conversations
+
+
+def get_conversation_entries(conversation_id: str, username: str):
+    """
+    Full message list for one thread, oldest first (reading order),
+    ownership-checked. Returns None if the thread doesn't exist or
+    doesn't belong to this user — treated as 404 by the route.
     """
 
     history = load_history()
 
-    updated_entry = None
+    matches = [
+        entry for entry in history
+        if entry.get("username") == username
+        and _conversation_key(entry) == conversation_id
+    ]
+
+    if not matches:
+        return None
+
+    return sorted(matches, key=lambda h: h["created_at"])
+
+
+def toggle_pin_conversation(conversation_id: str, username: str):
+    """
+    Pins/unpins an entire thread at once — every message in it gets the
+    same pinned value, so the sidebar's single row for the thread reflects
+    one consistent state. Returns the new pinned value, or None if the
+    thread doesn't exist / isn't owned by this user.
+    """
+
+    history = load_history()
+
+    new_state = None
 
     for entry in history:
-        if entry.get("id") == entry_id:
-            if entry.get("username") != username:
-                return None  # exists, but not this user's — treat as not found
-            entry["pinned"] = not entry.get("pinned", False)
-            updated_entry = entry
+        if (
+            entry.get("username") == username
+            and _conversation_key(entry) == conversation_id
+        ):
+            if new_state is None:
+                new_state = not entry.get("pinned", False)
+            entry["pinned"] = new_state
 
-    if updated_entry is not None:
+    if new_state is not None:
         save_history(history)
 
-    return updated_entry
+    return new_state
 
 
 def delete_user_history(username: str):
@@ -91,24 +164,25 @@ def delete_user_history(username: str):
     return removed_count
 
 
-def delete_single_entry(entry_id: str, username: str):
+def delete_conversation(conversation_id: str, username: str):
     """
-    Removes one entry, ownership-checked. Returns True if deleted,
-    False if not found or not owned by this user.
+    Removes every message in one thread, ownership-checked. Returns True
+    if anything was deleted, False if the thread wasn't found / not owned
+    by this user.
     """
 
     history = load_history()
 
-    entry = next(
-        (h for h in history if h.get("id") == entry_id),
-        None
-    )
+    remaining = [
+        entry for entry in history
+        if not (
+            entry.get("username") == username
+            and _conversation_key(entry) == conversation_id
+        )
+    ]
 
-    if entry is None or entry.get("username") != username:
-        return False
-
-    remaining = [h for h in history if h.get("id") != entry_id]
+    removed_count = len(history) - len(remaining)
 
     save_history(remaining)
 
-    return True
+    return removed_count > 0

@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from backend.services.auth_service import require_admin
 from backend.services.retrieval_service import (
     search_similar_chunks
 )
@@ -15,9 +16,13 @@ from backend.services.retrieval_contract import build_retrieval_response
 
 router = APIRouter()
 
+# These four endpoints are evaluation/debugging baselines (see README) that
+# expose raw chunk text from the knowledge base — admin-only, same as
+# /debug/retrieval, not the general engineer-facing /ask path.
+
 
 @router.get("/search")
-def search(query: str):
+def search(query: str, current_user: dict = Depends(require_admin)):
 
     results, distances = search_similar_chunks(query)
 
@@ -25,7 +30,7 @@ def search(query: str):
 
 
 @router.get("/search-bm25")
-def search_bm25_endpoint(query: str):
+def search_bm25_endpoint(query: str, current_user: dict = Depends(require_admin)):
 
     results = search_bm25(query)
 
@@ -33,7 +38,7 @@ def search_bm25_endpoint(query: str):
 
 
 @router.get("/search-hybrid")
-def search_hybrid_endpoint(query: str):
+def search_hybrid_endpoint(query: str, current_user: dict = Depends(require_admin)):
 
     results = hybrid_search(query)
 
@@ -41,7 +46,7 @@ def search_hybrid_endpoint(query: str):
 
 
 @router.get("/search-reranked")
-def search_reranked_endpoint(query: str):
+def search_reranked_endpoint(query: str, current_user: dict = Depends(require_admin)):
 
     candidates = hybrid_search(query, top_k=10)
 

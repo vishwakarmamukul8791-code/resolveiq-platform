@@ -4,7 +4,7 @@ import LoginPanel from "../components/LoginPanel";
 import PlatformStatus from "../components/PlatformStatus";
 import CapabilityGrid from "../components/CapabilityGrid";
 
-import "../styles/landing.css";
+import "../styles/Landing.css";
 
 function Landing() {
     return (

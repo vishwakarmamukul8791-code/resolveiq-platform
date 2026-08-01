@@ -1,68 +1,52 @@
-from fastapi import APIRouter, HTTPException
-from backend.services.embedding_service import generate_embeddings
-from backend.services.vector_store import (
-    save_metadata,
-    load_metadata
-)
-from backend.services.faiss_service import (
-    add_embeddings_to_index
-)
-from backend.services.hash_service import (
-    generate_file_hash
-)
-from backend.services.document_registry import (
-    load_registry,
-    save_registry
-)
-from backend.services.extraction_service import extract_text
-from backend.services.cleaning_service import clean_text
-from backend.config import (
-    CHUNK_SIZE,
-    CHUNK_OVERLAP
-)
-from backend.services.logging_service import (
-    log_info,
-    log_error
-)
-
-import os
 import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from backend.config import CHUNK_OVERLAP, CHUNK_SIZE
+from backend.services.auth_service import require_admin
+from backend.services.cleaning_service import clean_text
+from backend.services.document_registry import load_registry, save_registry
+from backend.services.embedding_service import generate_embeddings
+from backend.services.extraction_service import extract_text
+from backend.services.faiss_service import (
+    create_staged_index,
+    delete_faiss_index,
+    load_faiss_index,
+    save_faiss_index
+)
+from backend.services.file_path_service import resolve_raw_document_path
+from backend.services.hash_service import generate_file_hash
+from backend.services.logging_service import log_error, log_info
+from backend.services.reindex_service import rebuild_index
+from backend.services.vector_store import load_metadata, save_metadata
+
 
 router = APIRouter()
 
 
 def _chunk_single_text(text):
-
     chunks = []
-
     start = 0
 
     while start < len(text):
-
         end = start + CHUNK_SIZE
-
         chunks.append(text[start:end])
-
-        start += (CHUNK_SIZE - CHUNK_OVERLAP)
+        start += CHUNK_SIZE - CHUNK_OVERLAP
 
     return chunks
 
 
 def create_chunks_from_segments(segments):
     """
-    Chunks each segment (page / row / full document) separately,
-    so every resulting chunk keeps exactly one page_number and
-    source_location. A chunk never spans two PDF pages.
+    Chunk every page, CSV row, or text segment separately so each
+    chunk retains its original page number and source location.
     """
-
     all_chunks = []
 
     for segment in segments:
-
         pieces = _chunk_single_text(segment["text"])
 
         for piece in pieces:
-
             all_chunks.append({
                 "chunk": piece,
                 "page_number": segment["page_number"],
@@ -72,48 +56,120 @@ def create_chunks_from_segments(segments):
     return all_chunks
 
 
+def _load_consistent_existing_index(existing_metadata):
+    """
+    Load the existing index and repair it before appending when its
+    vector count does not match the existing metadata count.
+    """
+    index = load_faiss_index()
+    expected_count = len(existing_metadata)
+
+    if expected_count == 0:
+        if index is not None and index.ntotal != 0:
+            index = rebuild_index()
+
+        return index
+
+    if index is None or index.ntotal != expected_count:
+        index = rebuild_index()
+
+    if index is None or index.ntotal != expected_count:
+        actual_count = 0 if index is None else index.ntotal
+
+        raise RuntimeError(
+            "Existing FAISS/metadata consistency could not be restored: "
+            f"vectors={actual_count}, metadata={expected_count}"
+        )
+
+    return index
+
+
+def _restore_processing_state(
+    original_metadata,
+    original_registry,
+    original_index
+):
+    """
+    Best-effort rollback for failures during persistence.
+    Every recovery operation is attempted even if another one fails.
+    """
+    rollback_errors = []
+
+    operations = [
+        (
+            "metadata",
+            lambda: save_metadata(original_metadata)
+        ),
+        (
+            "registry",
+            lambda: save_registry(original_registry)
+        ),
+        (
+            "FAISS index",
+            lambda: (
+                delete_faiss_index()
+                if original_index is None
+                else save_faiss_index(original_index)
+            )
+        )
+    ]
+
+    for name, operation in operations:
+        try:
+            operation()
+        except Exception as exc:
+            rollback_errors.append(f"{name}: {exc}")
+
+    if rollback_errors:
+        raise RuntimeError(
+            "Processing rollback failed: "
+            + "; ".join(rollback_errors)
+        )
+
+
 @router.post("/process-document")
-def process_document(filename: str):
+def process_document(
+    filename: str,
+    current_user: dict = Depends(require_admin)
+):
+    try:
+        file_path = resolve_raw_document_path(filename)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
 
-    file_path = f"data/raw/{filename}"
-
-    if not os.path.exists(file_path):
+    if not file_path.is_file():
         raise HTTPException(
             status_code=404,
             detail="File not found"
         )
 
+    safe_filename = file_path.name
+
     try:
+        file_hash = generate_file_hash(str(file_path))
+        original_registry = load_registry()
 
-        # Duplicate check using hash
-        file_hash = generate_file_hash(file_path)
-
-        registry = load_registry()
-
-        for document in registry:
-
+        for document in original_registry:
             if document["hash"] == file_hash:
-
                 return {
                     "message": "Document already exists",
-                    "filename": filename
+                    "filename": safe_filename
                 }
 
-        # Extract text, page-by-page / row-by-row
-        raw_segments = extract_text(file_path)
+        raw_segments = extract_text(str(file_path))
 
-        # Clean each segment independently
-        segments = []
-
-        for segment in raw_segments:
-
-            segments.append({
+        segments = [
+            {
                 "text": clean_text(segment["text"]),
                 "page_number": segment["page_number"],
                 "source_location": segment["source_location"]
-            })
+            }
+            for segment in raw_segments
+        ]
 
-        # Chunking (page/location-aware)
         chunks = create_chunks_from_segments(segments)
 
         if not chunks:
@@ -122,57 +178,109 @@ def process_document(filename: str):
                 detail="No content found in file"
             )
 
-        # Load existing metadata
-        existing_metadata = load_metadata()
+        original_metadata = load_metadata()
+        original_index = _load_consistent_existing_index(
+            original_metadata
+        )
 
-        # Save chunk metadata, including where each chunk came from
-        for chunk in chunks:
-
-            existing_metadata.append({
+        new_records = [
+            {
                 "chunk_id": str(uuid.uuid4()),
-                "document_name": filename,
+                "document_name": safe_filename,
                 "chunk": chunk["chunk"],
                 "page_number": chunk["page_number"],
                 "source_location": chunk["source_location"]
-            })
+            }
+            for chunk in chunks
+        ]
 
-        save_metadata(existing_metadata)
+        proposed_metadata = [
+            *original_metadata,
+            *new_records
+        ]
 
-        # Generate embeddings (text only)
+        proposed_registry = [
+            *original_registry,
+            {
+                "document_name": safe_filename,
+                "hash": file_hash
+            }
+        ]
+
+        # Generate only the new document's embeddings.
         chunk_texts = [chunk["chunk"] for chunk in chunks]
-
         embeddings = generate_embeddings(chunk_texts)
 
-        # Save vectors to FAISS
-        index = add_embeddings_to_index(embeddings)
+        # Original index remains unchanged during staging.
+        staged_index = create_staged_index(
+            embeddings,
+            original_index
+        )
 
-        # Save hash to registry
-        registry.append({
-            "document_name": filename,
-            "hash": file_hash
-        })
+        if staged_index.ntotal != len(proposed_metadata):
+            raise RuntimeError(
+                "Staged FAISS/metadata count mismatch: "
+                f"vectors={staged_index.ntotal}, "
+                f"metadata={len(proposed_metadata)}"
+            )
 
-        save_registry(registry)
+        try:
+            save_faiss_index(staged_index)
+            save_metadata(proposed_metadata)
+            save_registry(proposed_registry)
 
-        log_info(f"Document processed successfully: {filename}")
+        except Exception as commit_exc:
+            try:
+                _restore_processing_state(
+                    original_metadata,
+                    original_registry,
+                    original_index
+                )
+
+            except Exception as rollback_exc:
+                log_error(
+                    f"Document processing commit failed: {commit_exc}; "
+                    f"rollback also failed: {rollback_exc}"
+                )
+
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        "Document processing failed and storage "
+                        "recovery was incomplete."
+                    )
+                ) from commit_exc
+
+            log_error(
+                f"Document processing commit failed and was rolled back: "
+                f"{commit_exc}"
+            )
+
+            raise HTTPException(
+                status_code=500,
+                detail="Unable to save processed document."
+            ) from commit_exc
+
+        log_info(
+            f"Document processed successfully: {safe_filename} "
+            f"by admin={current_user['username']}"
+        )
 
         return {
-            "filename": filename,
+            "filename": safe_filename,
             "total_chunks": len(chunks),
-            "embedding_dimension": len(embeddings[0]),
-            "metadata_records": len(existing_metadata),
-            "total_vectors": index.ntotal
+            "embedding_dimension": staged_index.d,
+            "metadata_records": len(proposed_metadata),
+            "total_vectors": staged_index.ntotal
         }
 
     except HTTPException:
-
         raise
 
-    except Exception as e:
-
-        log_error(str(e))
+    except Exception as exc:
+        log_error(str(exc))
 
         raise HTTPException(
             status_code=500,
             detail="Unable to process document."
-        )
+        ) from exc

@@ -1,23 +1,13 @@
-"""
-Task 12 — RAG Evaluation Harness
+﻿"""
+Offline retrieval evaluation.
 
-Runs the eval set (backend/eval/eval_set.py) against all four retrieval
-methods already in the project — semantic-only, BM25-only, hybrid (RRF),
-and hybrid + reranked — and reports Hit@1, Hit@5, and MRR@5 for each. This
-is the "hit-rate with/without hybrid & reranking" comparison the roadmap
-asked for, and the number meant to be citable in interviews.
+Runs predefined evaluation cases against semantic retrieval, BM25, hybrid
+RRF, and hybrid retrieval with reranking. It reports Hit@1, Hit@5, and MRR@5,
+then checks negative cases through the same retrieval and confidence path used
+by /ask.
 
-Also runs the negative (should-not-match) cases through the real
-hybrid -> rerank -> confidence pipeline (the same path /ask uses) to check
-the Task 9 abstain behavior isn't over- or under-triggering.
-
-This is a read-only harness: it queries the existing FAISS index / BM25 /
-metadata.json, it does not modify or reprocess the corpus. Run it after any
-change to retrieval, chunking, or the corpus itself, so you have a real
-before/after number instead of a guess.
-
-Run from the project root, inside the venv:
-    python -m backend.eval.run_eval
+The evaluation is read-only. It uses the existing FAISS index, BM25 corpus,
+and metadata without modifying or reprocessing documents.
 """
 
 import json
@@ -80,7 +70,7 @@ def _run_hybrid_reranked(query, top_k):
     return rerank(query, candidates, top_k=top_k)
 
 
-# Order matters for the printed report — roughly weakest to strongest,
+# Order matters for the printed report, from baseline to full pipeline.
 # so the improvement from hybrid and reranking reads top-to-bottom.
 METHODS = {
     "semantic": _run_semantic,
@@ -163,7 +153,7 @@ def evaluate_abstain_path():
 def print_report(method_results, abstain_results):
 
     print("\n" + "=" * 62)
-    print("RAG EVAL REPORT — Task 12")
+    print("RAG EVALUATION REPORT")
     print("=" * 62)
     print(f"{'Method':<20}{'Hit@1':>12}{'Hit@5':>12}{'MRR@5':>12}")
     print("-" * 62)
@@ -180,7 +170,7 @@ def print_report(method_results, abstain_results):
     print("-" * 62)
     print(f"Positive eval cases: {len(EVAL_CASES)}")
 
-    print("\nAbstain path (negative queries — should stay Low confidence):")
+    print("\nAbstain path (negative queries should remain Low confidence):")
 
     abstain_pct = (
         abstain_results["abstain_accuracy"] * 100
