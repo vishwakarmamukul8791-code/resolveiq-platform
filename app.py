@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
@@ -21,6 +22,7 @@ from backend.routes.health import router as health_router
 from backend.routes.debug_retrieval import router as debug_retrieval_router
 from backend.routes.auth import router as auth_router
 from backend.routes.admin import router as admin_router
+from backend.services.auth_service import bootstrap_admin_from_env
 
 is_production = (
     os.getenv("ENVIRONMENT", "development").strip().lower()
@@ -31,6 +33,13 @@ enable_debug_routes = (
     os.getenv("ENABLE_DEBUG_ROUTES", "false").strip().lower()
     in {"1", "true", "yes"}
 )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    bootstrap_admin_from_env()
+    yield
+
 
 app = FastAPI(
     title="ResolveIQ — AI-Powered Incident Resolution Platform",

@@ -128,6 +128,87 @@ def create_user(username: str, temp_password: str, role: str = "engineer"):
     return temp_password
 
 
+
+def bootstrap_admin_from_env() -> bool:
+    """
+    Creates the first admin from deployment environment variables.
+
+    The operation is idempotent:
+    - existing admin accounts are never overwritten
+    - passwords are never logged or stored in plaintext
+    - returns True only when a new admin is created
+    """
+
+    username = os.getenv(
+        "BOOTSTRAP_ADMIN_USERNAME",
+        ""
+    ).strip()
+
+    password = os.getenv(
+        "BOOTSTRAP_ADMIN_PASSWORD",
+        ""
+    )
+
+    if not username and not password:
+        return False
+
+    if not username or not password:
+        raise RuntimeError(
+            "BOOTSTRAP_ADMIN_USERNAME and "
+            "BOOTSTRAP_ADMIN_PASSWORD must both be configured."
+        )
+
+    if len(username) > 64:
+        raise RuntimeError(
+            "BOOTSTRAP_ADMIN_USERNAME must be at most 64 characters."
+        )
+
+    if len(password) < 12:
+        raise RuntimeError(
+            "BOOTSTRAP_ADMIN_PASSWORD must contain at least 12 characters."
+        )
+
+    users = _load_users()
+
+    existing_user = next(
+        (
+            user
+            for user in users
+            if user["username"] == username
+        ),
+        None
+    )
+
+    if existing_user is not None:
+        if existing_user["role"] != "admin":
+            raise RuntimeError(
+                "Bootstrap username already exists without the admin role."
+            )
+
+        log_info(
+            f"Bootstrap admin already exists: {username}"
+        )
+        return False
+
+    if any(user["role"] == "admin" for user in users):
+        log_info(
+            "An admin account already exists; bootstrap skipped."
+        )
+        return False
+
+    create_user(
+        username=username,
+        temp_password=password,
+        role="admin"
+    )
+
+    log_info(
+        f"Bootstrap admin created: {username}"
+    )
+
+    return True
+
+
 def get_user(username: str):
     """Returns the full user record or None."""
 
