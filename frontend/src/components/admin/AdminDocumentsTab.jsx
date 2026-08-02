@@ -12,6 +12,7 @@ import { documentsApi, ApiError } from "../../api/client";
 import SourceViewerModal from "../SourceViewerModal";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".csv", ".txt"];
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 function AdminDocumentsTab() {
   const [documents, setDocuments] = useState([]);
@@ -61,6 +62,12 @@ function AdminDocumentsTab() {
     const lower = file.name.toLowerCase();
     if (!ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
       setUploadError("Unsupported file type — only .pdf, .csv, and .txt are accepted.");
+      setUploadNotice(null);
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadError("File is too large — maximum upload size is 10 MB.");
       setUploadNotice(null);
       return;
     }

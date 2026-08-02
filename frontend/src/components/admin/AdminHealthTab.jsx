@@ -14,6 +14,8 @@ const COMPONENT_LABELS = {
   faiss_index: "FAISS Index",
   metadata: "Metadata Store",
   registry: "Document Registry",
+  index_consistency: "Index / Metadata",
+  data_directory: "Runtime Data Directory",
   gemini_api: "Gemini API Key",
   jwt_secret: "JWT Secret",
 };
@@ -21,6 +23,8 @@ const COMPONENT_LABELS = {
 const OK_VALUES = new Set([
   "Loaded",
   "Configured",
+  "In sync",
+  "Writable",
 ]);
 
 

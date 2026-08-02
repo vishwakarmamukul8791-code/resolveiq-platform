@@ -134,9 +134,15 @@ def debug_retrieval(
         reranked_results = rerank(search_query, hybrid_pool, top_k=DEBUG_TOP_K)
 
         normalized = build_retrieval_response(search_query, reranked_results)
-        normalized_results = [chunk.dict() for chunk in normalized.results]
+        normalized_results = [
+            chunk.model_dump()
+            for chunk in normalized.results
+        ]
 
-        confidence_info = calculate_confidence(normalized_results)
+        confidence_info = calculate_confidence(
+            normalized_results,
+            method=normalized.method,
+        )
 
         log_info(
             f"[debug] confidence={confidence_info['confidence']} "

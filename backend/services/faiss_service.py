@@ -1,10 +1,14 @@
+import os
+import tempfile
 from pathlib import Path
 
 import faiss
 import numpy as np
 
+from backend.services.storage_paths import data_path
 
-INDEX_PATH = Path("data/vector_store/index.faiss")
+
+INDEX_PATH = data_path("vector_store", "index.faiss")
 
 
 def _prepare_embeddings(embeddings):
@@ -56,7 +60,23 @@ def create_staged_index(embeddings, existing_index=None):
 
 def save_faiss_index(index):
     INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    faiss.write_index(index, str(INDEX_PATH))
+    temp_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=INDEX_PATH.parent,
+            prefix=f".{INDEX_PATH.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+
+        faiss.write_index(index, str(temp_path))
+        os.replace(temp_path, INDEX_PATH)
+
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def load_faiss_index():

@@ -1,399 +1,261 @@
-﻿# ResolveIQ — AI-Powered Incident Resolution Platform
+# ResolveIQ — AI-Powered Incident Resolution Platform
 
-ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) application built to help IT support engineers investigate incidents using internal knowledge-base documents and historical incident records.
+[![CI](https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant/actions/workflows/ci.yml)
 
-The system combines BM25 keyword search with FAISS-based semantic retrieval. Results from both retrievers are merged using Reciprocal Rank Fusion (RRF), reranked with a cross-encoder, and then passed to Gemini only when the retrieved evidence is strong enough.
+ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for investigating IT incidents against an internal knowledge base. It combines lexical and semantic retrieval, confidence-aware answer generation, grounded citations, engineer history, and an admin operations dashboard.
 
-Support engineers can ask questions, continue investigation threads, review cited sources, and reopen previous conversations. Administrators can manage engineer accounts, upload and process documents, review analytics, and monitor system health.
+## Live application
 
-## Problem
+- Frontend: [resolveiq-five.vercel.app](https://resolveiq-five.vercel.app)
+- Backend health: [resolveiq-api-8lmh.onrender.com/health](https://resolveiq-api-8lmh.onrender.com/health)
+- Repository: [GitHub](https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant)
 
-Support engineers often search across multiple knowledge-base documents and incident records before finding a useful solution.
+The Render Free backend can take up to a minute to wake after inactivity.
 
-Keyword-only search can miss semantically similar content, while a basic LLM wrapper can generate unsupported answers when relevant evidence is not available.
+## What ResolveIQ does
 
-ResolveIQ addresses both problems by using:
+- Authenticates admins and support engineers with JWT and role checks.
+- Accepts PDF, CSV, and TXT knowledge-base documents.
+- Extracts, cleans, chunks, embeds, and indexes document content.
+- Combines BM25 and FAISS results with Reciprocal Rank Fusion (RRF).
+- Optionally reranks candidates with a cross-encoder.
+- Sends retrieved context to Gemini only when evidence passes confidence gating.
+- Returns source document, page, and location citations.
+- Tracks investigation threads, sessions, confidence distribution, and knowledge gaps.
+- Gives admins document, engineer, analytics, and health controls.
 
-- lexical retrieval with BM25
-- semantic retrieval with FAISS and sentence embeddings
-- Reciprocal Rank Fusion to merge retrieval results
-- cross-encoder reranking for better final ordering
-- confidence-based answer generation
-- source citations for retrieved evidence
-
-## Main Features
-
-### Authentication and access control
-
-- JWT-based authentication
-- PBKDF2-HMAC-SHA256 password hashing
-- Admin and Support Engineer roles
-- forced password reset for newly created accounts
-- account activation and deactivation
-- session tracking for login, logout, duration, and question count
-
-### Document management
-
-- PDF, TXT, and CSV upload
-- SHA-256 duplicate detection
-- text extraction and cleaning
-- overlapping chunk generation
-- embedding generation and FAISS indexing
-- document registry and document details
-- safe document deletion with vector-store rebuild
-- rollback handling when processing or deletion fails
-
-### Retrieval pipeline
-
-- BM25 lexical retrieval
-- FAISS semantic retrieval
-- Reciprocal Rank Fusion
-- cross-encoder reranking
-- query rewriting before retrieval
-- optional document-scoped search
-- configurable chunk size, overlap, and Top-K
-
-### Answer generation
-
-- Gemini-based answer generation
-- High, Medium, and Low confidence levels
-- low-confidence abstention instead of unsupported answers
-- source document and location metadata
-- conversation-aware follow-up questions
-- provider timeout and fallback handling
-
-### History and analytics
-
-- conversation history grouped by investigation thread
-- reopen previous conversations
-- pin and delete investigation threads
-- engineer activity analytics
-- confidence distribution
-- knowledge-gap detection
-- source usage analytics
-- system health and corpus statistics
-
-## RAG Flow
+## RAG pipeline
 
 ```text
-User question
-    |
-    v
-Query rewriting
-    |
-    +--------------------+
-    |                    |
-    v                    v
-BM25 retrieval      FAISS retrieval
-    |                    |
-    +---------+----------+
-              |
-              v
-Reciprocal Rank Fusion
-              |
-              v
-Cross-encoder reranking
-              |
-              v
-Confidence scoring
-              |
-       +------+------+
-       |             |
-       v             v
-Enough evidence   Low confidence
-       |             |
-       v             v
-Gemini answer     Abstain safely
-       |
-       v
-Answer + citations + history
+Single incident question
+        |
+        v
+Optional query rewrite (safe fallback to original)
+        |
+        +-----------------------+
+        |                       |
+        v                       v
+BM25 lexical search      FAISS semantic search
+        |                       |
+        +-----------+-----------+
+                    |
+                    v
+          Reciprocal Rank Fusion
+                    |
+                    v
+        Optional cross-encoder rerank
+                    |
+                    v
+       Retrieval-aware confidence gate
+             /               \
+            /                 \
+       enough evidence       weak evidence
+            |                     |
+            v                     v
+     grounded Gemini answer    safe abstention
+            |
+            v
+   answer + citations + history
 ```
 
-## Document Processing Flow
+### Confidence safety contract
 
-```text
-Upload document
-    |
-    v
-Validate filename and file type
-    |
-    v
-Calculate SHA-256 hash
-    |
-    v
-Extract and clean text
-    |
-    v
-Create overlapping chunks
-    |
-    v
-Generate embeddings
-    |
-    v
-Update FAISS index and metadata
-    |
-    v
-Update document registry
-```
+- RRF and cross-encoder scores use separate thresholds.
+- A single weak retriever match stays Low confidence.
+- Zero and negative BM25 scores are discarded before fusion.
+- If Gemini returns its required no-information response, confidence is forced to Low and sources/supporting chunks are cleared.
+- Multiple independent questions in one request return HTTP 422 with `Please ask one incident question at a time.` The current response model intentionally represents one incident answer and one confidence decision.
 
-## Technology Stack
+## Technology stack
 
 | Area | Technology |
 |---|---|
-| Backend | Python, FastAPI |
-| Frontend | React 19, Vite, React Router 8 |
-| Answer model | Gemini 3.6 Flash |
-| Query rewriting model | Gemini 3.5 Flash Lite |
-| Embedding model | `all-MiniLM-L6-v2` |
-| Embedding dimension | 384 |
-| Reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
-| Lexical retrieval | BM25 with `rank-bm25` |
-| Vector index | FAISS |
-| PDF extraction | `pdfplumber` |
-| Authentication | JWT with HS256 |
-| Password hashing | PBKDF2-HMAC-SHA256, 200,000 iterations |
-| Runtime storage | JSON files and FAISS |
-| Frontend API client | Native `fetch` |
+| Frontend | React 19, Vite, React Router |
+| Backend | FastAPI, Python 3.12, Uvicorn |
+| Answer generation | Google Gemini |
+| Embeddings | Gemini in memory-constrained production; SentenceTransformers locally |
+| Vector index | FAISS `IndexFlatL2` |
+| Lexical retrieval | BM25 (`rank-bm25`) |
+| Fusion | Reciprocal Rank Fusion |
+| Optional reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| Authentication | JWT HS256, PBKDF2-HMAC-SHA256 |
+| Runtime state | JSON, uploaded files, and FAISS under `DATA_DIR` |
+| Hosting | Vercel frontend, Render backend |
 
-## Retrieval Configuration
-
-The main retrieval settings are stored in `backend/config.py`.
-
-| Setting | Value |
-|---|---|
-| Embedding model | `all-MiniLM-L6-v2` |
-| Embedding dimension | 384 |
-| Vector index | FAISS |
-| Chunk size | 500 |
-| Chunk overlap | 100 |
-| Top-K | 5 |
-
-## Offline Retrieval Evaluation
-
-The repository includes an offline evaluation runner:
-
-```bash
-python -m backend.eval.run_eval
-```
-
-Current retrieval results:
-
-| Method | Hit@1 | Hit@5 | MRR@5 |
-|---|---:|---:|---:|
-| Semantic | 0.905 | 1.000 | 0.940 |
-| BM25 | 0.857 | 1.000 | 0.909 |
-| Hybrid using RRF | 0.905 | 1.000 | 0.944 |
-| Hybrid with reranking | 0.905 | 1.000 | 0.940 |
-
-The evaluation is used as an offline benchmark. These metrics are not calculated for every question submitted through the frontend.
-
-## Project Structure
+## Project structure
 
 ```text
-resolveiq/
+.
 |-- app.py
+|-- Dockerfile
 |-- requirements.txt
+|-- requirements-render.txt
 |-- .env.example
-|-- .gitignore
-|-- README.md
-|
+|-- .github/workflows/ci.yml
 |-- backend/
-|   |-- config.py
-|   |-- logger.py
-|   |-- seed_admin.py
-|   |
 |   |-- eval/
-|   |   |-- eval_set.py
-|   |   `-- run_eval.py
-|   |
 |   |-- routes/
-|   |   |-- auth.py
-|   |   |-- admin.py
-|   |   |-- ask.py
-|   |   |-- upload.py
-|   |   |-- process.py
-|   |   |-- documents.py
-|   |   |-- document_details.py
-|   |   |-- delete_document.py
-|   |   |-- history.py
-|   |   |-- delete_history.py
-|   |   |-- search.py
-|   |   |-- stats.py
-|   |   |-- health.py
-|   |   `-- debug_retrieval.py
-|   |
 |   `-- services/
-|       |-- auth_service.py
-|       |-- embedding_service.py
-|       |-- bm25_service.py
-|       |-- hybrid_retrieval_service.py
-|       |-- rerank_service.py
-|       |-- query_rewrite_service.py
-|       |-- confidence_service.py
-|       |-- llm_service.py
-|       |-- faiss_service.py
-|       |-- vector_store.py
-|       |-- document_registry.py
-|       |-- history_service.py
-|       |-- session_service.py
-|       `-- reindex_service.py
-|
-|-- data/                       # Generated locally and ignored by Git
-|   |-- raw/
-|   |-- vector_store/
-|   |-- history/
-|   |-- users.json
-|   |-- sessions.json
-|   `-- document_registry.json
-|
-`-- frontend/
-    |-- package.json
-    |-- package-lock.json
-    |-- vite.config.js
-    |-- index.html
-    |-- public/
-    `-- src/
-        |-- api/
-        |-- assets/
-        |-- components/
-        |-- context/
-        |-- pages/
-        |-- styles/
-        |-- utils/
-        |-- App.jsx
-        `-- main.jsx
+|-- frontend/
+|   |-- src/
+|   |-- package.json
+|   `-- vercel.json
+`-- tests/
 ```
 
-## Local Setup
+Runtime files are generated under `DATA_DIR` and ignored by Git:
 
-### Prerequisites
-
-- Python 3.12
-- Node.js and npm
-- Gemini API key
-
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd resolveiq
+```text
+data/raw/                         uploaded source files
+data/users.json                   user accounts
+data/sessions.json                login sessions
+data/document_registry.json       processed document registry
+data/history/chat_history.json    investigation history
+data/vector_store/index.faiss     vector index
+data/vector_store/metadata.json   chunk metadata
 ```
 
-### 2. Create the Python environment
+## Local setup — Windows PowerShell
 
-Windows PowerShell:
+### 1. Clone and create the backend environment
 
 ```powershell
+git clone https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant.git
+Set-Location intelligent-incident-resolution-assistant
+
 py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-macOS or Linux:
-
-```bash
-python3.12 -m venv venv
-source venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### 3. Configure backend environment variables
-
-Copy `.env.example` to `.env`.
-
-Windows PowerShell:
+### 2. Configure backend environment
 
 ```powershell
 Copy-Item .env.example .env
-```
-
-macOS or Linux:
-
-```bash
-cp .env.example .env
-```
-
-Set the required values:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key
-JWT_SECRET_KEY=your_jwt_signing_secret
-FRONTEND_ORIGIN=
-ENABLE_DEBUG_ROUTES=false
-```
-
-Generate a secure JWT secret:
-
-```bash
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-### 4. Create the first admin account
+Put the generated value and your Gemini key in `.env`:
 
-```bash
-python -m backend.seed_admin
+```env
+ENVIRONMENT=development
+GEMINI_API_KEY=your_gemini_api_key
+JWT_SECRET_KEY=your_generated_secret
+DATA_DIR=data
+FRONTEND_ORIGIN=
+EMBEDDING_PROVIDER=local
+EMBEDDING_MODEL=gemini-embedding-001
+EMBEDDING_DIMENSION=384
+ENABLE_CROSS_ENCODER=true
+ENABLE_DEBUG_ROUTES=false
+MAX_UPLOAD_SIZE_MB=10
 ```
 
-The command creates `data/users.json` and prints a temporary password. The admin must change this password after the first login.
+### 3. Create the first admin and start the API
 
-### 5. Start the backend
-
-```bash
+```powershell
+python -m backend.seed_admin
 uvicorn app:app --reload
 ```
 
-Backend URLs:
+Local API endpoints:
 
-```text
-API:     http://127.0.0.1:8000
-Swagger: http://127.0.0.1:8000/docs
-Health:  http://127.0.0.1:8000/health
-```
+- API: `http://127.0.0.1:8000`
+- Swagger: `http://127.0.0.1:8000/docs`
+- Health: `http://127.0.0.1:8000/health`
 
-### 6. Configure and start the frontend
+### 4. Start the frontend
 
-```bash
-cd frontend
-npm install
-```
-
-Copy the frontend environment template:
-
-Windows PowerShell:
+Open a second PowerShell window:
 
 ```powershell
+Set-Location intelligent-incident-resolution-assistant\frontend
 Copy-Item .env.example .env
-```
-
-macOS or Linux:
-
-```bash
-cp .env.example .env
-```
-
-Default frontend environment:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-Start the frontend:
-
-```bash
+npm ci
 npm run dev
 ```
 
-Frontend URL:
+The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://localhost:8000` by default.
 
-```text
-http://localhost:5173
+## Environment variables
+
+| Variable | Required | Purpose |
+|---|---:|---|
+| `GEMINI_API_KEY` | Yes | Gemini answer generation and Gemini embeddings |
+| `JWT_SECRET_KEY` | Yes | JWT signing and verification |
+| `ENVIRONMENT` | No | Use `production` to disable API docs and local CORS origins |
+| `FRONTEND_ORIGIN` | Production | Comma-separated allowed frontend origins |
+| `DATA_DIR` | No | Runtime state directory; defaults to repository `data/` |
+| `EMBEDDING_PROVIDER` | No | `local` or `gemini` |
+| `EMBEDDING_MODEL` | No | Gemini embedding model name |
+| `EMBEDDING_DIMENSION` | No | Embedding/index dimension; defaults to 384 |
+| `ENABLE_CROSS_ENCODER` | No | Disable on memory-constrained instances |
+| `QUERY_REWRITE_ENABLED` | No | Enables an optional Gemini rewrite call |
+| `ENABLE_DEBUG_ROUTES` | No | Development-only admin retrieval diagnostics |
+| `MAX_UPLOAD_SIZE_MB` | No | Maximum PDF/CSV/TXT upload size; defaults to 10 |
+| `BOOTSTRAP_ADMIN_USERNAME` | Deployment | Idempotent first-admin bootstrap username |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Deployment | First-admin bootstrap password; keep secret |
+| `BOOTSTRAP_ADMIN_RESET_VERSION` | No | Change to intentionally reset the bootstrap admin password |
+
+## Production persistence warning
+
+ResolveIQ currently stores accounts, sessions, history, uploads, metadata, and FAISS state on the backend filesystem.
+
+Render Free storage is ephemeral. A redeploy, restart, or instance replacement can remove all runtime state. `DATA_DIR` makes the storage location configurable; it does not make a Free filesystem persistent. The bootstrap variables can recreate the first admin, but they cannot restore uploaded documents or history.
+
+For retained production state, use one of these approaches:
+
+1. Attach a persistent Render disk, set `DATA_DIR` to its mount path (for example `/var/data`), and run one backend instance.
+2. Move users/sessions/history to PostgreSQL, uploads to object storage, and vectors to a persistent vector store.
+
+Do not treat the current Render Free deployment as durable storage.
+
+## Docker
+
+The production image uses the memory-efficient Render dependency set, Gemini embeddings, and disables the cross-encoder by default.
+
+```powershell
+docker build -t resolveiq-api .
+docker run --rm -p 8000:8000 `
+  -e ENVIRONMENT=production `
+  -e GEMINI_API_KEY=your_key `
+  -e JWT_SECRET_KEY=your_secret `
+  -e FRONTEND_ORIGIN=http://localhost:5173 `
+  -e BOOTSTRAP_ADMIN_USERNAME=admin `
+  -e BOOTSTRAP_ADMIN_PASSWORD=replace_with_12_plus_chars `
+  -v resolveiq-data:/app/data `
+  resolveiq-api
 ```
 
-## Main API Endpoints
+## Validation and CI
 
-### Authentication
+Run the same core checks locally:
+
+```powershell
+python -m compileall -q app.py backend tests
+python -m unittest discover -s tests -p "test_*.py" -v
+
+Set-Location frontend
+npm ci
+npm run lint
+npm run build
+Set-Location ..
+```
+
+The GitHub Actions workflow runs three independent jobs on pushes and pull requests:
+
+- backend compilation and unit tests
+- frontend lint and production build
+- backend Docker image build
+
+Offline retrieval evaluation (requires an existing local corpus and index):
+
+```powershell
+python -m backend.eval.run_eval
+```
+
+## Main API endpoints
 
 | Method | Endpoint | Access |
 |---|---|---|
@@ -401,137 +263,40 @@ http://localhost:5173
 | POST | `/auth/logout` | Authenticated |
 | POST | `/auth/reset-password` | Authenticated |
 | GET | `/auth/me` | Authenticated |
-
-### RAG
-
-| Method | Endpoint | Access |
-|---|---|---|
-| POST | `/ask` | Authenticated |
-| GET | `/debug/retrieval` | Admin, only when enabled |
-
-### Documents
-
-| Method | Endpoint | Access |
-|---|---|---|
+| POST | `/ask` | Authenticated, password reset complete |
+| GET | `/documents` | Authenticated, password reset complete |
+| GET | `/document/{filename}` | Authenticated, password reset complete |
+| GET/PATCH/DELETE | `/history...` | Authenticated, ownership scoped |
 | POST | `/upload` | Admin |
 | POST | `/process-document` | Admin |
-| GET | `/documents` | Authenticated |
-| GET | `/document/{filename}` | Authenticated |
 | DELETE | `/document/{filename}` | Admin |
-
-### History
-
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/history` | Authenticated |
-| GET | `/history/{conversation_id}` | Authenticated |
-| PATCH | `/history/{entry_id}/pin` | Authenticated |
-| DELETE | `/history` | Authenticated |
-| DELETE | `/history/{entry_id}` | Authenticated |
-
-### Admin
-
-| Method | Endpoint |
-|---|---|
-| POST | `/admin/create-engineer` |
-| GET | `/admin/engineers` |
-| POST | `/admin/set-active` |
-| POST | `/admin/reset-engineer-password` |
-| GET | `/admin/sessions` |
-| GET | `/admin/analytics` |
-| GET | `/admin/knowledge-gaps` |
-| GET | `/admin/source-analytics` |
-| GET | `/admin/system-health` |
-| GET | `/admin/history/{username}` |
-
-### System and retrieval diagnostics
-
-| Method | Endpoint | Access |
-|---|---|---|
+| GET | `/admin/system-health` | Admin |
+| GET | `/debug/retrieval` | Admin, development-only when enabled |
 | GET | `/health` | Public |
 | GET | `/stats` | Public |
-| GET | `/search` | Admin |
-| GET | `/search-bm25` | Admin |
-| GET | `/search-hybrid` | Admin |
-| GET | `/search-reranked` | Admin |
 
-## Runtime Data
+## Security and reliability controls
 
-The application currently uses local JSON files and FAISS instead of an external database.
+- Server-side current-user, active-status, role, and forced-password-reset checks
+- PBKDF2 password hashing with per-user salts and constant-time verification
+- Ownership checks for history and session mutations
+- Filename/path traversal protection and file-content validation
+- Streamed, size-bounded uploads with partial-file cleanup
+- Atomic JSON and FAISS writes; corrupted JSON fails closed
+- Serialized in-process state mutations and document index operations
+- FAISS/metadata consistency checks and rollback paths
+- Provider timeout/error mapping without exposing provider internals
+- Retrieval-method-aware confidence gating and LLM abstention downgrade
+- UTC timestamps with legacy naive-UTC display compatibility
+- Production API docs and retrieval debug routes disabled by default
 
-```text
-data/raw/                         Uploaded documents
-data/users.json                   User accounts
-data/sessions.json                Login sessions
-data/document_registry.json       Processed document registry
-data/history/chat_history.json    Investigation history
-data/vector_store/index.faiss     Vector index
-data/vector_store/metadata.json   Chunk metadata
-```
+## Current deployment limits
 
-These files are ignored by Git because they contain runtime data, user information, or generated indexes.
-
-A file inside `data/raw/` is not searchable until it has been processed and added to the registry, metadata, and FAISS index.
-
-## Security and Reliability
-
-The project includes:
-
-- role checks on admin-only routes
-- JWT expiry handling
-- password hashing with per-user salt
-- filename validation and path traversal protection
-- file type validation
-- duplicate document detection
-- FAISS and metadata consistency checks
-- rollback handling during failed processing and deletion
-- LLM timeout handling
-- query rewrite fallback
-- citation grounding
-- debug routes disabled by default
-
-## Production Notes
-
-The current storage design is suitable for a portfolio project and a single backend instance.
-
-For a larger production deployment, the next improvements would be:
-
-- move users, sessions, document metadata, and history to PostgreSQL
-- use object storage for uploaded documents
-- use persistent shared vector storage
-- process large documents through a background job queue
-- add rate limiting and refresh-token support
-- add automated unit and integration tests
-- add Docker and CI/CD
-- add monitoring for latency, errors, token usage, and retrieval quality
-
-## Available Commands
-
-Backend syntax check:
-
-```bash
-python -m compileall -q app.py backend
-```
-
-Run retrieval evaluation:
-
-```bash
-python -m backend.eval.run_eval
-```
-
-Frontend lint:
-
-```bash
-cd frontend
-npm run lint
-```
-
-Frontend production build:
-
-```bash
-npm run build
-```
+- Local JSON/FAISS storage is designed for a single API instance, not horizontal scaling.
+- Document processing is synchronous; large production workloads should use a background queue.
+- JWT access tokens do not use refresh tokens or a revocation list. Active status and password-reset state are still checked on every protected request.
+- Retrieval thresholds should be recalibrated whenever the embedding model, corpus, or reranker changes.
 
 ## License
 
-This project was built for learning, portfolio development, and interview preparation.
+Built as a portfolio and learning project for production-oriented RAG engineering.

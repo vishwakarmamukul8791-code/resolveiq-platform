@@ -15,6 +15,7 @@ from backend.services.reindex_service import (
     rebuild_index
 )
 from backend.services.vector_store import load_metadata, save_metadata
+from backend.services.storage_locks import synchronized_document_storage
 
 
 router = APIRouter()
@@ -84,6 +85,7 @@ def _restore_deletion_state(
 
 
 @router.delete("/document/{filename}")
+@synchronized_document_storage
 def delete_document(
     filename: str,
     current_user: dict = Depends(require_admin)

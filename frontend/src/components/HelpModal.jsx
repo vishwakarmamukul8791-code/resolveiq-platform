@@ -34,8 +34,9 @@ function HelpModal({ onClose }) {
           <section>
             <h4>Ask a question</h4>
             <p>
-              Describe the incident or paste an error message in the box below. Press Enter to
-              send, or Shift+Enter to start a new line first.
+              Describe one incident question or paste one error message in the box below. Press
+              Enter to send, or Shift+Enter to start a new line first. Ask independent questions
+              separately so each answer gets its own retrieval and confidence decision.
             </p>
           </section>
 
@@ -43,8 +44,8 @@ function HelpModal({ onClose }) {
             <h4>Confidence levels</h4>
             <ul>
               <li>
-                <strong>High</strong> — a strong match was found in your documents. You can trust
-                this answer.
+                <strong>High</strong> — retrieval found strong supporting document chunks. Verify
+                the cited source before making a production change.
               </li>
               <li>
                 <strong>Medium</strong> — a partial match was found. Worth a quick check against

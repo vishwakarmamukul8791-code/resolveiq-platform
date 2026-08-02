@@ -1,6 +1,6 @@
 // frontend/src/components/LoginPanel.jsx
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../api/client";
@@ -25,12 +25,15 @@ function LoginPanel() {
     navigate(currentRole === "admin" ? "/admin" : "/support", { replace: true });
   }
 
-  // Already signed in and doesn't need to reset — nothing for this panel
-  // to do (e.g. the user navigated back to "/" manually after logging in).
-  if (isAuthenticated && !mustResetPassword) {
-    redirectByRole(role);
-    return null;
-  }
+  // Navigation is a side effect. Running it during render causes React
+  // warnings and can produce duplicate redirects in Strict Mode.
+  useEffect(() => {
+    if (isAuthenticated && !mustResetPassword) {
+      navigate(role === "admin" ? "/admin" : "/support", {
+        replace: true,
+      });
+    }
+  }, [isAuthenticated, mustResetPassword, navigate, role]);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -130,6 +133,10 @@ function LoginPanel() {
         </div>
       </section>
     );
+  }
+
+  if (isAuthenticated) {
+    return null;
   }
 
   return (

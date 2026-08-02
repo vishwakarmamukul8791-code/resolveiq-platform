@@ -1,32 +1,13 @@
-import json
-import os
+from backend.services.json_storage import load_json_list, save_json
+from backend.services.storage_paths import data_path
+
+
+METADATA_PATH = data_path("vector_store", "metadata.json")
 
 
 def save_metadata(metadata):
-    os.makedirs("data/vector_store", exist_ok=True)
-    with open(
-        "data/vector_store/metadata.json",
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        json.dump(
-            metadata,
-            file,
-            indent=4
-        )
+    save_json(METADATA_PATH, metadata)
 
 
 def load_metadata():
-
-    path = "data/vector_store/metadata.json"
-
-    if not os.path.exists(path):
-        return []
-
-    try:
-        with open(path, "r", encoding="utf-8") as file:
-            return json.load(file)
-
-    except json.JSONDecodeError:
-        return []
+    return load_json_list(METADATA_PATH)

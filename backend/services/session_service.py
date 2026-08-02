@@ -25,35 +25,43 @@ API calls. Mixing them forces every query to filter/aggregate over
 one bloated file instead of reading the right one directly.
 """
 
-import json
-import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
-SESSIONS_PATH = "data/sessions.json"
+from backend.services.json_storage import (
+    load_json_list,
+    save_json,
+    synchronized_storage,
+)
+from backend.services.storage_paths import data_path
+
+
+SESSIONS_PATH = data_path("sessions.json")
+
+
+def _utc_now():
+    return datetime.now(timezone.utc)
+
+
+def _parse_timestamp(value: str):
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+    if parsed.tzinfo is None:
+        # Existing production records were written as naive UTC on Render.
+        parsed = parsed.replace(tzinfo=timezone.utc)
+
+    return parsed
 
 
 def _load_sessions():
-
-    if not os.path.exists(SESSIONS_PATH):
-        return []
-
-    try:
-        with open(SESSIONS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    except json.JSONDecodeError:
-        return []
+    return load_json_list(SESSIONS_PATH)
 
 
 def _save_sessions(sessions):
-
-    os.makedirs(os.path.dirname(SESSIONS_PATH), exist_ok=True)
-
-    with open(SESSIONS_PATH, "w", encoding="utf-8") as f:
-        json.dump(sessions, f, indent=4)
+    save_json(SESSIONS_PATH, sessions)
 
 
+@synchronized_storage(SESSIONS_PATH)
 def create_session(username: str) -> str:
     """
     Called by POST /auth/login on every successful login.
@@ -68,7 +76,7 @@ def create_session(username: str) -> str:
     sessions.append({
         "session_id": session_id,
         "username": username,
-        "login_time": datetime.now().isoformat(),
+        "login_time": _utc_now().isoformat(),
         "logout_time": None,
         "duration_minutes": None,
         "questions_asked": 0,
@@ -82,7 +90,8 @@ def create_session(username: str) -> str:
     return session_id
 
 
-def close_session(session_id: str):
+@synchronized_storage(SESSIONS_PATH)
+def close_session(session_id: str, username: str) -> bool:
     """
     Called by POST /auth/logout.
     Records logout_time and calculates duration_minutes.
@@ -90,19 +99,37 @@ def close_session(session_id: str):
 
     sessions = _load_sessions()
 
+    found = False
+
     for session in sessions:
-        if session["session_id"] == session_id:
-            logout_time = datetime.now()
-            login_time = datetime.fromisoformat(session["login_time"])
+        if (
+            session["session_id"] == session_id
+            and session["username"] == username
+        ):
+            found = True
+
+            if session.get("logout_time"):
+                break
+
+            logout_time = _utc_now()
+            login_time = _parse_timestamp(session["login_time"])
             duration = (logout_time - login_time).total_seconds() / 60
 
             session["logout_time"] = logout_time.isoformat()
-            session["duration_minutes"] = round(duration, 1)
+            session["duration_minutes"] = round(max(duration, 0), 1)
+            break
 
     _save_sessions(sessions)
 
+    return found
 
-def record_question(session_id: str, confidence: str):
+
+@synchronized_storage(SESSIONS_PATH)
+def record_question(
+    session_id: str,
+    confidence: str,
+    username: str,
+) -> bool:
     """
     Called by POST /ask after every successful response.
     Increments the question counter and the appropriate confidence bucket.
@@ -111,12 +138,19 @@ def record_question(session_id: str, confidence: str):
     """
 
     if not session_id:
-        return
+        return False
 
     sessions = _load_sessions()
 
+    found = False
+
     for session in sessions:
-        if session["session_id"] == session_id:
+        if (
+            session["session_id"] == session_id
+            and session["username"] == username
+            and not session.get("logout_time")
+        ):
+            found = True
             session["questions_asked"] += 1
 
             if confidence == "High":
@@ -126,7 +160,11 @@ def record_question(session_id: str, confidence: str):
             else:
                 session["low_confidence"] += 1
 
+            break
+
     _save_sessions(sessions)
+
+    return found
 
 
 def get_all_sessions(username: str = None):

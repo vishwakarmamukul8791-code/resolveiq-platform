@@ -137,12 +137,8 @@ class ConfidenceServiceTests(unittest.TestCase):
                 return_value=[weak_candidate],
             ),
             patch(
-                "backend.routes.ask.load_history",
-                return_value=[],
-            ),
-            patch(
-                "backend.routes.ask.save_history",
-            ) as save_history_mock,
+                "backend.routes.ask.append_history",
+            ) as append_history_mock,
             patch(
                 "backend.routes.ask.record_question",
             ) as record_question_mock,
@@ -170,12 +166,13 @@ class ConfidenceServiceTests(unittest.TestCase):
         record_question_mock.assert_called_once_with(
             "test-session",
             "Low",
+            "mukul",
         )
 
-        saved_history = save_history_mock.call_args.args[0]
+        saved_entry = append_history_mock.call_args.args[0]
 
         self.assertEqual(
-            saved_history[0]["confidence"],
+            saved_entry["confidence"],
             "Low",
         )
 

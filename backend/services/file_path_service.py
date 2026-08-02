@@ -1,8 +1,9 @@
 from pathlib import Path
 
+from backend.services.storage_paths import data_path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RAW_DOCUMENT_DIR = (PROJECT_ROOT / "data" / "raw").resolve()
+
+RAW_DOCUMENT_DIR = data_path("raw")
 
 ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".csv", ".txt"}
 

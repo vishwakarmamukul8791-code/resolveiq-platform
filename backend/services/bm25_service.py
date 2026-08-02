@@ -29,11 +29,17 @@ def search_bm25(query: str, top_k: int = 5, document_name: str = None):
 
     tokenized_query = _tokenize(query)
 
+    if not tokenized_query:
+        return []
+
     scores = bm25.get_scores(tokenized_query)
 
     results = []
 
     for idx, score in enumerate(scores):
+
+        if score <= 0:
+            continue
 
         results.append({
             "chunk_id": metadata[idx]["chunk_id"],

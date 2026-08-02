@@ -6,13 +6,15 @@ from backend.services.history_service import (
     get_conversation_entries,
     toggle_pin_conversation
 )
-from backend.services.auth_service import get_current_user
+from backend.services.auth_service import require_password_reset_complete
 
 router = APIRouter()
 
 
 @router.get("/history")
-def get_history(current_user: dict = Depends(get_current_user)):
+def get_history(
+    current_user: dict = Depends(require_password_reset_complete),
+):
     """
     Returns ONLY the calling user's own investigations, one row per
     conversation thread (not per question) — most recently active thread
@@ -35,7 +37,7 @@ def get_history(current_user: dict = Depends(get_current_user)):
 @router.get("/history/{conversation_id}")
 def get_conversation(
     conversation_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_password_reset_complete)
 ):
     """
     Full message list for one thread, oldest first — powers the workspace
@@ -58,7 +60,10 @@ def get_conversation(
 
 
 @router.patch("/history/{entry_id}/pin")
-def pin_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
+def pin_entry(
+    entry_id: str,
+    current_user: dict = Depends(require_password_reset_complete),
+):
     """
     Toggles the pinned flag on an entire conversation thread at once.
     Ownership is checked in history_service.toggle_pin_conversation — if

@@ -13,10 +13,8 @@ import { authApi, tokenStorage, onUnauthorized } from "../api/client";
  *   would silently drop session-level question tracking (record_question()
  *   on the backend just no-ops on a missing session_id — no error, it just
  *   quietly stops counting). Persisting it avoids that silent gap.
- * - must_reset_password: if someone refreshes mid force-reset-screen
- *   (before actually resetting), losing this flag would let them fall
- *   through to the dashboard without resetting. Persisting it closes that
- *   gap too.
+ * - must_reset_password: persisted for immediate rendering, then refreshed
+ *   from /auth/me so the server remains authoritative after reload.
  */
 
 const SESSION_META_KEY = "iira_session_meta"; // { sessionId, mustResetPassword }
@@ -92,14 +90,21 @@ export function AuthProvider({ children }) {
 
     authApi
       .getMe()
-      .then(({ username, role }) => {
+      .then(({ username, role, must_reset_password }) => {
+        const mustResetPassword = must_reset_password ?? false;
+
+        writeSessionMeta({
+          ...meta,
+          mustResetPassword,
+        });
+
         setState({
           isAuthenticated: true,
           isLoading: false,
           username,
           role,
           sessionId: meta.sessionId ?? null,
-          mustResetPassword: meta.mustResetPassword ?? false,
+          mustResetPassword,
         });
       })
       .catch(() => {

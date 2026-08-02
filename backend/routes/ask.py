@@ -1,20 +1,22 @@
+import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.services.auth_service import get_current_user
+from backend.services.auth_service import require_password_reset_complete
 from backend.services.confidence_service import (
     calculate_confidence,
     filter_relevant_chunks
 )
-from backend.services.history_service import load_history, save_history
+from backend.services.history_service import append_history
 from backend.services.hybrid_retrieval_service import hybrid_search
 from backend.services.llm_service import (
     LLMServiceError,
-    generate_answer
+    generate_answer,
+    is_no_information_answer,
 )
 from backend.services.logging_service import log_error, log_info
 from backend.services.query_rewrite_service import rewrite_query
@@ -31,6 +33,10 @@ router = APIRouter()
 NO_MATCH_MESSAGE = (
     "I couldn't find relevant information in the knowledge base "
     "to answer this question confidently."
+)
+
+MULTI_QUESTION_MESSAGE = (
+    "Please ask one incident question at a time."
 )
 
 LLM_ERROR_RESPONSES = {
@@ -142,6 +148,14 @@ def _normalize_request(payload: AskRequest):
             detail="Question cannot be empty."
         )
 
+    normalized_question_marks = re.sub(r"\?+", "?", query)
+
+    if normalized_question_marks.count("?") > 1:
+        raise HTTPException(
+            status_code=422,
+            detail=MULTI_QUESTION_MESSAGE,
+        )
+
     document_name = payload.document_name
 
     if document_name is not None:
@@ -191,7 +205,7 @@ def ask_question(
         default=None
     ),
     current_user: dict = Depends(
-        get_current_user
+        require_password_reset_complete
     )
 ):
     """
@@ -235,7 +249,7 @@ def ask_question(
         )
 
         reranked_results = [
-            chunk.dict()
+            chunk.model_dump()
             for chunk in normalized.results
         ]
 
@@ -276,20 +290,33 @@ def ask_question(
                 context
             )
 
-            # Citations contain only chunks supplied
-            # to the answer-generation model.
-            sources = _build_sources(
-                relevant_chunks
-            )
+            if is_no_information_answer(answer):
+                confidence_info = {
+                    **confidence_info,
+                    "confidence": "Low",
+                    "supporting_chunks": 0,
+                }
+                sources = []
+
+                log_info(
+                    "LLM abstained — confidence downgraded "
+                    f"for user={username}"
+                )
+
+            else:
+                # Citations contain only chunks supplied
+                # to the answer-generation model.
+                sources = _build_sources(
+                    relevant_chunks
+                )
 
         record_question(
             x_session_id,
-            confidence_info["confidence"]
+            confidence_info["confidence"],
+            username,
         )
 
-        history = load_history()
-
-        history.append({
+        history_entry = {
             "id": str(uuid.uuid4()),
             "conversation_id": conversation_id,
             "pinned": False,
@@ -305,10 +332,10 @@ def ask_question(
                 source["document_name"]
                 for source in sources
             ],
-            "created_at": datetime.now().isoformat()
-        })
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
 
-        save_history(history)
+        append_history(history_entry)
 
         log_info(
             f"Request completed — user={username} "
