@@ -63,7 +63,6 @@ def _get_engineer_only_history():
 
 class CreateEngineerRequest(BaseModel):
     username: str
-    full_name: str | None = None
 
 
 class SetActiveRequest(BaseModel):

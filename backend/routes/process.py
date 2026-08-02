@@ -18,6 +18,7 @@ from backend.services.file_path_service import resolve_raw_document_path
 from backend.services.hash_service import generate_file_hash
 from backend.services.logging_service import log_error, log_info
 from backend.services.reindex_service import rebuild_index
+from backend.services.storage_locks import synchronized_document_storage
 from backend.services.vector_store import load_metadata, save_metadata
 
 
@@ -128,6 +129,7 @@ def _restore_processing_state(
 
 
 @router.post("/process-document")
+@synchronized_document_storage
 def process_document(
     filename: str,
     current_user: dict = Depends(require_admin)
@@ -154,9 +156,12 @@ def process_document(
 
         for document in original_registry:
             if document["hash"] == file_hash:
+                if document["document_name"] != safe_filename:
+                    file_path.unlink(missing_ok=True)
+
                 return {
                     "message": "Document already exists",
-                    "filename": safe_filename
+                    "filename": document["document_name"],
                 }
 
         raw_segments = extract_text(str(file_path))

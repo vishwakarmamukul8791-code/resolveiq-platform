@@ -12,7 +12,7 @@ and metadata without modifying or reprocessing documents.
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.services.retrieval_service import search_similar_chunks
 from backend.services.bm25_service import search_bm25
@@ -21,11 +21,12 @@ from backend.services.rerank_service import rerank
 from backend.services.retrieval_contract import build_retrieval_response
 from backend.services.confidence_service import calculate_confidence
 from backend.services.logging_service import log_info
+from backend.services.storage_paths import data_path
 
 from backend.eval.eval_set import EVAL_CASES, NEGATIVE_CASES
 
 TOP_K = 5
-RESULTS_PATH = "data/eval/eval_results.json"
+RESULTS_PATH = data_path("eval", "eval_results.json")
 
 
 def _is_hit(chunk_text: str, markers: list) -> bool:
@@ -127,9 +128,15 @@ def evaluate_abstain_path():
         candidates = hybrid_search(case["query"], top_k=10, candidate_pool_size=10)
         reranked = rerank(case["query"], candidates, top_k=5)
         normalized = build_retrieval_response(case["query"], reranked)
-        reranked_results = [chunk.dict() for chunk in normalized.results]
+        reranked_results = [
+            chunk.model_dump()
+            for chunk in normalized.results
+        ]
 
-        confidence_info = calculate_confidence(reranked_results)
+        confidence_info = calculate_confidence(
+            reranked_results,
+            method=normalized.method,
+        )
 
         correctly_abstained = confidence_info["confidence"] == "Low"
 
@@ -208,7 +215,7 @@ def main():
     os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
 
     output = {
-        "run_at": datetime.now().isoformat(),
+        "run_at": datetime.now(timezone.utc).isoformat(),
         "methods": method_results,
         "abstain": abstain_results
     }

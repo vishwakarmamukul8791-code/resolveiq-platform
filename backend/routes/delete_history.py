@@ -2,13 +2,15 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from backend.services.logging_service import log_info, log_error
 from backend.services.history_service import delete_user_history, delete_conversation
-from backend.services.auth_service import get_current_user
+from backend.services.auth_service import require_password_reset_complete
 
 router = APIRouter()
 
 
 @router.delete("/history")
-def delete_all_history(current_user: dict = Depends(get_current_user)):
+def delete_all_history(
+    current_user: dict = Depends(require_password_reset_complete),
+):
     """
     Deletes ONLY the calling user's own investigations. This used to wipe
     the entire file for every engineer — now scoped to username from the
@@ -23,7 +25,10 @@ def delete_all_history(current_user: dict = Depends(get_current_user)):
 
 
 @router.delete("/history/{entry_id}")
-def delete_one_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
+def delete_one_entry(
+    entry_id: str,
+    current_user: dict = Depends(require_password_reset_complete),
+):
     """Deletes an entire conversation thread (all its messages), ownership-checked."""
 
     try:

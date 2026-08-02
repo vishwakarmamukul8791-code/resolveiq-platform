@@ -1,14 +1,2 @@
-﻿fastapi
-uvicorn
-faiss-cpu
-sentence-transformers
-google-genai<3.0.0
-python-dotenv
-python-multipart
-numpy
-pandas
-pydantic
-pdfplumber
-rank-bm25
-pyjwt
-httpx
+-r requirements-render.txt
+sentence-transformers>=5.0.0,<6.0.0

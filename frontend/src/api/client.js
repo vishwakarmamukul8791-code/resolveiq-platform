@@ -248,12 +248,17 @@ export const documentsApi = {
   upload(file) {
     const formData = new FormData();
     formData.append("file", file);
-    return request("/upload", { method: "POST", multipart: formData });
+    return request("/upload", {
+      method: "POST",
+      multipart: formData,
+      timeoutMs: 60000,
+    });
   },
   process(filename) {
     return request("/process-document", {
       method: "POST",
       params: { filename },
+      timeoutMs: 180000,
     });
   },
   remove(name) {
@@ -284,10 +289,10 @@ export const historyApi = {
 
 // ── Admin (all 403 for engineer tokens — backend-enforced via require_admin) ─
 export const adminApi = {
-  createEngineer(username, fullName) {
+  createEngineer(username) {
     return request("/admin/create-engineer", {
       method: "POST",
-      json: { username, full_name: fullName ?? null },
+      json: { username },
     });
   },
   listEngineers() {

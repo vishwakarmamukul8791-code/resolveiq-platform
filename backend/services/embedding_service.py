@@ -18,6 +18,7 @@ EMBEDDING_MODEL = os.getenv(
 EMBEDDING_DIMENSION = int(
     os.getenv("EMBEDDING_DIMENSION", "384")
 )
+LOCAL_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 _local_model = None
 _gemini_client = None
@@ -30,7 +31,7 @@ def _get_local_model():
         from sentence_transformers import SentenceTransformer
 
         _local_model = SentenceTransformer(
-            "all-MiniLM-L6-v2"
+            LOCAL_EMBEDDING_MODEL
         )
 
     return _local_model
@@ -118,3 +119,10 @@ def generate_embeddings(chunks):
         model.encode(chunks),
         dtype="float32",
     )
+
+
+def get_embedding_model_name():
+    if EMBEDDING_PROVIDER == "local":
+        return LOCAL_EMBEDDING_MODEL
+
+    return EMBEDDING_MODEL

@@ -1,7 +1,7 @@
 import os
-import json
 import hashlib
 import hmac
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -10,8 +10,14 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 
 from backend.services.logging_service import log_info, log_error
+from backend.services.json_storage import (
+    load_json_list,
+    save_json,
+    synchronized_storage,
+)
+from backend.services.storage_paths import data_path
 
-USERS_PATH = "data/users.json"
+USERS_PATH = data_path("users.json")
 
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 12
@@ -24,6 +30,7 @@ JWT_EXPIRY_HOURS = 12
 PBKDF2_ITERATIONS = 200_000
 
 VALID_ROLES = {"admin", "engineer"}
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
@@ -42,24 +49,11 @@ def _get_jwt_secret() -> str:
 
 
 def _load_users():
-
-    if not os.path.exists(USERS_PATH):
-        return []
-
-    try:
-        with open(USERS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    except json.JSONDecodeError:
-        return []
+    return load_json_list(USERS_PATH)
 
 
 def _save_users(users):
-
-    os.makedirs(os.path.dirname(USERS_PATH), exist_ok=True)
-
-    with open(USERS_PATH, "w", encoding="utf-8") as f:
-        json.dump(users, f, indent=4)
+    save_json(USERS_PATH, users)
 
 
 def _hash_password(password: str, salt: str = None):
@@ -89,6 +83,7 @@ def _verify_password(password: str, stored_hash: str, salt: str) -> bool:
 # User management
 # ─────────────────────────────────────────────
 
+@synchronized_storage(USERS_PATH)
 def create_user(username: str, temp_password: str, role: str = "engineer"):
     """
     Creates a user. Called from:
@@ -101,6 +96,17 @@ def create_user(username: str, temp_password: str, role: str = "engineer"):
     Returns the temp_password so the HTTP endpoint can return it to the admin
     (shown once, never stored in plaintext).
     """
+
+    username = username.strip()
+
+    if not 3 <= len(username) <= 64:
+        raise ValueError("Username must contain 3 to 64 characters.")
+
+    if not USERNAME_PATTERN.fullmatch(username):
+        raise ValueError(
+            "Username may contain only letters, numbers, dots, "
+            "underscores, and hyphens."
+        )
 
     if role not in VALID_ROLES:
         raise ValueError(f"Invalid role '{role}'. Must be one of: {VALID_ROLES}")
@@ -119,7 +125,7 @@ def create_user(username: str, temp_password: str, role: str = "engineer"):
         "password_hash": password_hash,
         "salt": salt,
         "must_reset_password": True,
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "last_login": None
     })
 
@@ -129,6 +135,7 @@ def create_user(username: str, temp_password: str, role: str = "engineer"):
 
 
 
+@synchronized_storage(USERS_PATH)
 def bootstrap_admin_from_env() -> bool:
     """
     Creates the first admin from deployment environment variables.
@@ -277,6 +284,7 @@ def list_engineers():
     ]
 
 
+@synchronized_storage(USERS_PATH)
 def set_active_status(username: str, is_active: bool):
     """Enable or disable an engineer account. Admin-only operation."""
 
@@ -302,10 +310,6 @@ def authenticate(username: str, password: str):
     Returns the user record on success, None on failure.
 
     Checks is_active — deactivated engineers are rejected at login.
-    Existing tokens for deactivated engineers remain valid until expiry
-    (12h max). Immediate token invalidation would require server-side
-    token revocation or a blacklist, which is not implemented in the
-    current local-storage design.
     """
 
     users = _load_users()
@@ -325,17 +329,19 @@ def authenticate(username: str, password: str):
     return user
 
 
+@synchronized_storage(USERS_PATH)
 def update_last_login(username: str):
 
     users = _load_users()
 
     for user in users:
         if user["username"] == username:
-            user["last_login"] = datetime.now().isoformat()
+            user["last_login"] = datetime.now(timezone.utc).isoformat()
 
     _save_users(users)
 
 
+@synchronized_storage(USERS_PATH)
 def set_new_password(username: str, new_password: str):
     """Used by POST /auth/reset-password (self-service, own account only)."""
 
@@ -357,6 +363,7 @@ def set_new_password(username: str, new_password: str):
     _save_users(users)
 
 
+@synchronized_storage(USERS_PATH)
 def admin_reset_password(target_username: str):
     """
     Admin resets an engineer's password to a new system-generated temp.
@@ -372,6 +379,11 @@ def admin_reset_password(target_username: str):
 
     for user in users:
         if user["username"] == target_username:
+            if user["role"] != "engineer":
+                raise ValueError(
+                    "Only engineer passwords can be reset here."
+                )
+
             password_hash, salt = _hash_password(new_temp)
             user["password_hash"] = password_hash
             user["salt"] = salt
@@ -392,15 +404,9 @@ def admin_reset_password(target_username: str):
 
 def create_access_token(username: str, role: str) -> str:
     """
-    Role is encoded directly in the JWT payload.
-
-    The role is stored in the signed JWT payload, avoiding a user-file lookup
-    on every authenticated request. Role changes take effect after the current
-    token expires.
-    Because JWT is stateless by design — the token is self-contained. Encoding
-    role avoids a file I/O lookup on every protected request. The tradeoff is
-    that a role change doesn't take effect until the current token expires (12h).
-    For this use case that's fine.
+    Issue a signed access token. Protected requests also reload the current
+    user record, so deactivation, role, and forced-reset changes take effect
+    immediately instead of waiting for this token to expire.
     """
 
     expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
@@ -424,9 +430,19 @@ def decode_access_token(token: str):
             algorithms=[JWT_ALGORITHM]
         )
 
+        username = payload.get("sub")
+        role = payload.get("role")
+
+        if (
+            not isinstance(username, str)
+            or not username
+            or role not in VALID_ROLES
+        ):
+            return None
+
         return {
-            "username": payload.get("sub"),
-            "role": payload.get("role", "engineer")
+            "username": username,
+            "role": role,
         }
 
     except jwt.ExpiredSignatureError:
@@ -444,7 +460,7 @@ def decode_access_token(token: str):
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     """
-    Returns {"username": str, "role": str} for the authenticated caller.
+    Returns current persisted identity and password-reset state.
     Use as: current_user: dict = Depends(get_current_user)
     """
 
@@ -456,10 +472,41 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
-    return payload
+    user = get_user(payload["username"])
+
+    if user is None or not user.get("is_active", True):
+        raise HTTPException(
+            status_code=401,
+            detail="Account is unavailable.",
+        )
+
+    return {
+        "username": user["username"],
+        "role": user["role"],
+        "must_reset_password": user.get(
+            "must_reset_password",
+            False,
+        ),
+    }
 
 
-def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
+def require_password_reset_complete(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Block application access until a temporary password is changed."""
+
+    if current_user["must_reset_password"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Password reset required.",
+        )
+
+    return current_user
+
+
+def require_admin(
+    current_user: dict = Depends(require_password_reset_complete),
+) -> dict:
     """
     Dependency for admin-only routes.
     Use as: current_user: dict = Depends(require_admin)

@@ -54,7 +54,10 @@ def logout(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        close_session(session_id)
+        close_session(
+            session_id,
+            current_user["username"],
+        )
         log_info(f"Logout: {current_user['username']} session={session_id[:8]}")
         return {"message": "Logged out successfully."}
     except Exception as e:
@@ -87,4 +90,8 @@ def reset_password(
 
 @router.get("/auth/me")
 def get_me(current_user: dict = Depends(get_current_user)):
-    return {"username": current_user["username"], "role": current_user["role"]}
+    return {
+        "username": current_user["username"],
+        "role": current_user["role"],
+        "must_reset_password": current_user["must_reset_password"],
+    }
