@@ -12,6 +12,22 @@ ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for inve
 
 The Render Free backend can take up to a minute to wake after inactivity.
 
+> The hosted application uses restricted accounts. For local evaluation, follow the setup instructions to create your own admin account; no credentials are committed to the repository.
+
+## Product screenshots
+
+### Secure enterprise access
+
+![ResolveIQ enterprise sign-in](docs/screenshots/resolveiq-sign-in.png)
+
+### Source-grounded incident resolution
+
+![ResolveIQ high-confidence RAG answer](docs/screenshots/resolveiq-rag-answer.png)
+
+### Administrative system health
+
+![ResolveIQ admin system health dashboard](docs/screenshots/resolveiq-system-health.png)
+
 ## What ResolveIQ does
 
 - Authenticates admins and support engineers with JWT and role checks.
@@ -299,4 +315,4 @@ python -m backend.eval.run_eval
 
 ## License
 
-Built as a portfolio and learning project for production-oriented RAG engineering.
+This project is licensed under the [MIT License](LICENSE).
