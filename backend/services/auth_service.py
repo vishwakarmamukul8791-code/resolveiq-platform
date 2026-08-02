@@ -149,6 +149,11 @@ def bootstrap_admin_from_env() -> bool:
         ""
     )
 
+    reset_version = os.getenv(
+        "BOOTSTRAP_ADMIN_RESET_VERSION",
+        ""
+    ).strip()
+
     if not username and not password:
         return False
 
@@ -185,6 +190,29 @@ def bootstrap_admin_from_env() -> bool:
                 "Bootstrap username already exists without the admin role."
             )
 
+        previous_reset_version = existing_user.get(
+            "bootstrap_reset_version",
+            ""
+        )
+
+        if (
+            reset_version
+            and reset_version != previous_reset_version
+        ):
+            password_hash, salt = _hash_password(password)
+
+            existing_user["password_hash"] = password_hash
+            existing_user["salt"] = salt
+            existing_user["must_reset_password"] = True
+            existing_user["bootstrap_reset_version"] = reset_version
+
+            _save_users(users)
+
+            log_info(
+                f"Bootstrap admin password reset: {username}"
+            )
+            return True
+
         log_info(
             f"Bootstrap admin already exists: {username}"
         )
@@ -201,6 +229,16 @@ def bootstrap_admin_from_env() -> bool:
         temp_password=password,
         role="admin"
     )
+
+    if reset_version:
+        users = _load_users()
+
+        for user in users:
+            if user["username"] == username:
+                user["bootstrap_reset_version"] = reset_version
+                break
+
+        _save_users(users)
 
     log_info(
         f"Bootstrap admin created: {username}"
