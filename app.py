@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
+    lifespan=lifespan,
     title="ResolveIQ — AI-Powered Incident Resolution Platform",
     docs_url=None if is_production else "/docs",
     redoc_url=None if is_production else "/redoc",
