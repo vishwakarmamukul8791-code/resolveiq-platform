@@ -240,11 +240,13 @@ def ask_question(
         ]
 
         confidence_info = calculate_confidence(
-            reranked_results
+            reranked_results,
+            method=normalized.method,
         )
 
         relevant_chunks = filter_relevant_chunks(
-            reranked_results
+            reranked_results,
+            method=normalized.method,
         )
 
         if (

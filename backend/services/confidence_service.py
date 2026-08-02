@@ -1,42 +1,86 @@
-RELEVANCE_THRESHOLD = 0.0
-HIGH_CONFIDENCE_THRESHOLD = 3.0
+from math import isfinite
 
 
-def calculate_confidence(reranked_results):
+METHOD_THRESHOLDS = {
+    "reranked": {
+        "relevance": 0.0,
+        "high": 3.0,
+    },
+    "hybrid": {
+        "relevance": 0.02,
+        "high": 0.03,
+    },
+}
 
-    if not reranked_results:
+
+def _read_score(result):
+    try:
+        score = float(result["relevance_score"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    if not isfinite(score):
+        return None
+
+    return score
+
+
+def filter_relevant_chunks(results, method):
+    thresholds = METHOD_THRESHOLDS.get(method)
+
+    if thresholds is None:
+        return []
+
+    relevant_chunks = []
+
+    for result in results:
+        score = _read_score(result)
+
+        if (
+            score is not None
+            and score > thresholds["relevance"]
+        ):
+            relevant_chunks.append(result)
+
+    return relevant_chunks
+
+
+def calculate_confidence(results, method):
+    if not results:
         return {
             "confidence": "Low",
             "top_score": None,
-            "supporting_chunks": 0
+            "supporting_chunks": 0,
         }
 
-    top_score = reranked_results[0]["relevance_score"]
+    top_score = _read_score(results[0])
+    thresholds = METHOD_THRESHOLDS.get(method)
 
-    supporting_chunks = sum(
-        1 for result in reranked_results
-        if result["relevance_score"] > RELEVANCE_THRESHOLD
+    if top_score is None or thresholds is None:
+        return {
+            "confidence": "Low",
+            "top_score": (
+                round(top_score, 3)
+                if top_score is not None
+                else None
+            ),
+            "supporting_chunks": 0,
+        }
+
+    relevant_chunks = filter_relevant_chunks(
+        results,
+        method,
     )
 
-    if top_score >= HIGH_CONFIDENCE_THRESHOLD:
-        confidence = "High"
-
-    elif top_score >= RELEVANCE_THRESHOLD:
-        confidence = "Medium"
-
-    else:
+    if not relevant_chunks:
         confidence = "Low"
+    elif top_score >= thresholds["high"]:
+        confidence = "High"
+    else:
+        confidence = "Medium"
 
     return {
         "confidence": confidence,
         "top_score": round(top_score, 3),
-        "supporting_chunks": supporting_chunks
+        "supporting_chunks": len(relevant_chunks),
     }
-
-
-def filter_relevant_chunks(reranked_results):
-
-    return [
-        result for result in reranked_results
-        if result["relevance_score"] > RELEVANCE_THRESHOLD
-    ]
