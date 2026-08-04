@@ -93,10 +93,18 @@ def get_health_status():
     )
 
     required_states = (
-        health["faiss_index"] == "Loaded",
-        health["metadata"] == "Loaded",
-        health["registry"] == "Loaded",
-        health["index_consistency"] == "In sync",
+        # A brand-new deployment with zero documents processed yet has
+        # no FAISS index or metadata file — that's "Missing", which is
+        # a perfectly valid, healthy state, not a failure. Only "Corrupt"
+        # (a real read/parse error) should ever fail health. Same logic
+        # for index_consistency: "Unknown" just means there's nothing to
+        # compare yet (fresh install); only an actual mismatch between
+        # an existing index and existing metadata ("Out of sync") is a
+        # real problem.
+        health["faiss_index"] != "Corrupt",
+        health["metadata"] != "Corrupt",
+        health["registry"] != "Corrupt",
+        health["index_consistency"] != "Out of sync",
         health["data_directory"] == "Writable",
         health["gemini_api"] == "Configured",
         health["jwt_secret"] == "Configured",
