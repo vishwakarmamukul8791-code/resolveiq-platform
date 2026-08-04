@@ -7,6 +7,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.routes.upload import router as upload_router
 from backend.routes.process import router as process_router
@@ -33,6 +34,36 @@ enable_debug_routes = (
     os.getenv("ENABLE_DEBUG_ROUTES", "false").strip().lower()
     in {"1", "true", "yes"}
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Baseline security headers on every response. This is an API-only
+    backend (the React app is a separate static deployment), so the CSP
+    here is deliberately locked down to "nothing renders here" rather
+    than a policy tuned for serving HTML/JS — there's no frontend markup
+    coming from this service that a content policy would need to allow.
+    """
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), camera=(), microphone=()"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; frame-ancestors 'none'"
+        )
+
+        if is_production:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains"
+            )
+
+        return response
 
 
 @asynccontextmanager
@@ -74,6 +105,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(upload_router)
 app.include_router(process_router)

@@ -74,7 +74,11 @@ function LoginPanel() {
 
     setIsResetting(true);
     try {
-      await completePasswordReset(newPassword);
+      // `password` still holds what was typed on the sign-in step above —
+      // the backend requires proof of the current password before
+      // accepting a new one, so this reuses it instead of asking the
+      // person to type their just-used temporary password a second time.
+      await completePasswordReset(password, newPassword);
       redirectByRole(role);
     } catch (err) {
       setResetError(err instanceof ApiError ? err.message : "Could not update password.");

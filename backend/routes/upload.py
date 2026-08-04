@@ -34,6 +34,38 @@ def _get_max_upload_bytes():
     return size_mb * 1024 * 1024
 
 
+def _reserve_upload_path(original_path):
+    """
+    Atomically claims a filename using O_CREAT|O_EXCL, which fails
+    outright if the path already exists instead of silently overwriting
+    it. The previous approach (`while path.exists(): try_next_name()`)
+    checked existence and created the file as two separate steps — two
+    uploads of the same original filename arriving at nearly the same
+    moment could both pass the `.exists()` check for the same candidate
+    name before either had created it, and one would silently clobber
+    the other. O_CREAT|O_EXCL makes "does this name exist" and "claim
+    it" one atomic OS-level operation, so only one of the two racing
+    requests can ever win a given filename.
+    """
+
+    candidate = original_path
+    counter = 1
+
+    while True:
+        try:
+            fd = os.open(
+                str(candidate),
+                os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+            )
+            os.close(fd)
+            return candidate
+        except FileExistsError:
+            candidate = original_path.with_name(
+                f"{original_path.stem}({counter}){original_path.suffix}"
+            )
+            counter += 1
+
+
 def _validate_file_content(file_path):
     with file_path.open("rb") as uploaded_file:
         header = uploaded_file.read(4096)
@@ -87,15 +119,7 @@ async def upload_file(
         ) from exc
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-
-    original_path = file_path
-    counter = 1
-
-    while file_path.exists():
-        file_path = original_path.with_name(
-            f"{original_path.stem}({counter}){original_path.suffix}"
-        )
-        counter += 1
+    file_path = _reserve_upload_path(file_path)
 
     try:
         total_bytes = 0

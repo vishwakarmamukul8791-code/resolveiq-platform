@@ -22,12 +22,18 @@ USERS_PATH = data_path("users.json")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 12
 
-# NIST/OWASP minimum for PBKDF2-HMAC-SHA256.
 # PBKDF2 is implemented through Python's standard hashlib module,
 # avoiding an additional native dependency while providing salted,
 # configurable password hashing.
-# guarantee at 200k iterations with SHA-256.
-PBKDF2_ITERATIONS = 200_000
+#
+# OWASP's current guidance (2023+) for PBKDF2-HMAC-SHA256 is 600k
+# iterations. Earlier records in users.json may have been hashed at the
+# old 200k figure; each user record stores the iteration count it was
+# actually hashed with (`pbkdf2_iterations`), so old hashes keep
+# verifying correctly and are transparently re-hashed at the new,
+# stronger count the next time that user logs in successfully.
+PBKDF2_ITERATIONS = 600_000
+LEGACY_PBKDF2_ITERATIONS = 200_000
 
 VALID_ROLES = {"admin", "engineer"}
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -56,24 +62,42 @@ def _save_users(users):
     save_json(USERS_PATH, users)
 
 
-def _hash_password(password: str, salt: str = None):
+def _hash_password(password: str, salt: str = None, iterations: int = None):
 
     if salt is None:
         salt = secrets.token_hex(16)
+
+    if iterations is None:
+        iterations = PBKDF2_ITERATIONS
 
     hashed = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
         salt.encode("utf-8"),
-        PBKDF2_ITERATIONS
+        iterations
     )
 
-    return hashed.hex(), salt
+    return hashed.hex(), salt, iterations
 
 
-def _verify_password(password: str, stored_hash: str, salt: str) -> bool:
+def _verify_password(
+    password: str,
+    stored_hash: str,
+    salt: str,
+    iterations: int = None,
+) -> bool:
+    """
+    Verifies against whatever iteration count the hash was actually
+    created with. Older user records predate the `pbkdf2_iterations`
+    field entirely — those are always LEGACY_PBKDF2_ITERATIONS (200k),
+    the only value this codebase ever hashed with before this field
+    existed.
+    """
 
-    candidate_hash, _ = _hash_password(password, salt)
+    if iterations is None:
+        iterations = LEGACY_PBKDF2_ITERATIONS
+
+    candidate_hash, _, _ = _hash_password(password, salt, iterations)
 
     # constant-time comparison — plain == leaks timing info
     return hmac.compare_digest(candidate_hash, stored_hash)
@@ -116,7 +140,7 @@ def create_user(username: str, temp_password: str, role: str = "engineer"):
     if any(u["username"] == username for u in users):
         raise ValueError(f"User '{username}' already exists.")
 
-    password_hash, salt = _hash_password(temp_password)
+    password_hash, salt, iterations = _hash_password(temp_password)
 
     users.append({
         "username": username,
@@ -124,9 +148,18 @@ def create_user(username: str, temp_password: str, role: str = "engineer"):
         "is_active": True,
         "password_hash": password_hash,
         "salt": salt,
+        "pbkdf2_iterations": iterations,
         "must_reset_password": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "last_login": None
+        "last_login": None,
+        # Bumped on every password change. Tokens carry the value that
+        # was current when they were issued (see create_access_token) —
+        # a mismatch at request time means "issued under an old
+        # password" and the token is rejected even if it hasn't expired
+        # yet. This is what makes password changes actually revoke
+        # previously issued tokens instead of leaving them valid until
+        # their 12h expiry.
+        "token_version": 0
     })
 
     _save_users(users)
@@ -206,12 +239,16 @@ def bootstrap_admin_from_env() -> bool:
             reset_version
             and reset_version != previous_reset_version
         ):
-            password_hash, salt = _hash_password(password)
+            password_hash, salt, iterations = _hash_password(password)
 
             existing_user["password_hash"] = password_hash
             existing_user["salt"] = salt
+            existing_user["pbkdf2_iterations"] = iterations
             existing_user["must_reset_password"] = True
             existing_user["bootstrap_reset_version"] = reset_version
+            existing_user["token_version"] = (
+                existing_user.get("token_version", 0) + 1
+            )
 
             _save_users(users)
 
@@ -305,6 +342,31 @@ def set_active_status(username: str, is_active: bool):
     _save_users(users)
 
 
+@synchronized_storage(USERS_PATH)
+def _rehash_if_legacy(username: str, password: str, used_iterations: int):
+    """
+    Transparent upgrade path: a successful login verified against the old
+    200k-iteration hash gets silently re-hashed at the current, stronger
+    iteration count so accounts naturally migrate to the new standard the
+    next time their owner logs in, with no forced reset and no downtime.
+    """
+
+    if used_iterations >= PBKDF2_ITERATIONS:
+        return
+
+    users = _load_users()
+
+    for user in users:
+        if user["username"] == username:
+            password_hash, salt, iterations = _hash_password(password)
+            user["password_hash"] = password_hash
+            user["salt"] = salt
+            user["pbkdf2_iterations"] = iterations
+            break
+
+    _save_users(users)
+
+
 def authenticate(username: str, password: str):
     """
     Returns the user record on success, None on failure.
@@ -323,10 +385,42 @@ def authenticate(username: str, password: str):
         log_info(f"Login rejected — account inactive: {username}")
         return None
 
-    if not _verify_password(password, user["password_hash"], user["salt"]):
+    used_iterations = user.get("pbkdf2_iterations", LEGACY_PBKDF2_ITERATIONS)
+
+    if not _verify_password(
+        password,
+        user["password_hash"],
+        user["salt"],
+        used_iterations,
+    ):
         return None
 
+    _rehash_if_legacy(username, password, used_iterations)
+
     return user
+
+
+def verify_current_password(username: str, password: str) -> bool:
+    """
+    Used by POST /auth/reset-password to require proof of the current
+    password before accepting a new one — closes the gap where a
+    stolen-but-still-valid JWT alone would be enough to lock the real
+    owner out.
+    """
+
+    user = get_user(username)
+
+    if user is None:
+        return False
+
+    used_iterations = user.get("pbkdf2_iterations", LEGACY_PBKDF2_ITERATIONS)
+
+    return _verify_password(
+        password,
+        user["password_hash"],
+        user["salt"],
+        used_iterations,
+    )
 
 
 @synchronized_storage(USERS_PATH)
@@ -343,7 +437,19 @@ def update_last_login(username: str):
 
 @synchronized_storage(USERS_PATH)
 def set_new_password(username: str, new_password: str):
-    """Used by POST /auth/reset-password (self-service, own account only)."""
+    """
+    Used by POST /auth/reset-password (self-service, own account only).
+
+    Caller must already have verified the current password via
+    verify_current_password() — this function only performs the write,
+    so the read-verify-write isn't split across two separate storage
+    lock acquisitions.
+
+    Bumps token_version so every access token issued before this change
+    stops working immediately, even if it hasn't expired yet — the
+    person who set this new password is the only one who should be able
+    to keep using the account from this point on.
+    """
 
     users = _load_users()
 
@@ -351,10 +457,12 @@ def set_new_password(username: str, new_password: str):
 
     for user in users:
         if user["username"] == username:
-            password_hash, salt = _hash_password(new_password)
+            password_hash, salt, iterations = _hash_password(new_password)
             user["password_hash"] = password_hash
             user["salt"] = salt
+            user["pbkdf2_iterations"] = iterations
             user["must_reset_password"] = False
+            user["token_version"] = user.get("token_version", 0) + 1
             found = True
 
     if not found:
@@ -384,10 +492,14 @@ def admin_reset_password(target_username: str):
                     "Only engineer passwords can be reset here."
                 )
 
-            password_hash, salt = _hash_password(new_temp)
+            password_hash, salt, iterations = _hash_password(new_temp)
             user["password_hash"] = password_hash
             user["salt"] = salt
+            user["pbkdf2_iterations"] = iterations
             user["must_reset_password"] = True
+            # Any token issued to this engineer before the admin's reset
+            # stops working immediately, not just at its 12h expiry.
+            user["token_version"] = user.get("token_version", 0) + 1
             found = True
 
     if not found:
@@ -402,11 +514,17 @@ def admin_reset_password(target_username: str):
 # JWT
 # ─────────────────────────────────────────────
 
-def create_access_token(username: str, role: str) -> str:
+def create_access_token(username: str, role: str, token_version: int = 0) -> str:
     """
     Issue a signed access token. Protected requests also reload the current
     user record, so deactivation, role, and forced-reset changes take effect
     immediately instead of waiting for this token to expire.
+
+    token_version is stamped into the token at issue time and compared
+    against the user's *current* token_version on every authenticated
+    request (see get_current_user). Password changes bump the stored
+    value, so tokens issued before a password change are rejected right
+    away instead of remaining valid until their 12h expiry.
     """
 
     expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
@@ -414,6 +532,7 @@ def create_access_token(username: str, role: str) -> str:
     payload = {
         "sub": username,
         "role": role,
+        "tv": token_version,
         "exp": expire
     }
 
@@ -421,7 +540,10 @@ def create_access_token(username: str, role: str) -> str:
 
 
 def decode_access_token(token: str):
-    """Returns {"username": str, "role": str} or None if invalid/expired."""
+    """
+    Returns {"username": str, "role": str, "token_version": int} or
+    None if invalid/expired.
+    """
 
     try:
         payload = jwt.decode(
@@ -432,17 +554,20 @@ def decode_access_token(token: str):
 
         username = payload.get("sub")
         role = payload.get("role")
+        token_version = payload.get("tv", 0)
 
         if (
             not isinstance(username, str)
             or not username
             or role not in VALID_ROLES
+            or not isinstance(token_version, int)
         ):
             return None
 
         return {
             "username": username,
             "role": role,
+            "token_version": token_version,
         }
 
     except jwt.ExpiredSignatureError:
@@ -478,6 +603,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         raise HTTPException(
             status_code=401,
             detail="Account is unavailable.",
+        )
+
+    if payload.get("token_version", 0) != user.get("token_version", 0):
+        raise HTTPException(
+            status_code=401,
+            detail="This session was signed out by a password change.",
         )
 
     return {
