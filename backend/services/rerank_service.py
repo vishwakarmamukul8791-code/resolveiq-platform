@@ -14,6 +14,15 @@ def _cross_encoder_enabled():
     )
 
 
+def is_cross_encoder_enabled():
+    """
+    Public accessor for whether reranking is actually active in this
+    running instance — used by /stats so the frontend can display real
+    runtime configuration instead of a hardcoded claim.
+    """
+    return _cross_encoder_enabled()
+
+
 def _get_model():
     global _model
 

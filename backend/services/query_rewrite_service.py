@@ -41,6 +41,15 @@ def _is_query_rewrite_enabled() -> bool:
     }
 
 
+def is_query_rewrite_enabled() -> bool:
+    """
+    Public accessor for whether query rewriting is actually active in
+    this running instance — used by /stats so the frontend can display
+    real runtime configuration instead of a hardcoded claim.
+    """
+    return _is_query_rewrite_enabled()
+
+
 def _read_rewrite_timeout_ms() -> int:
     raw_value = os.getenv(
         "GEMINI_REWRITE_TIMEOUT_MS",

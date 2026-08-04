@@ -286,6 +286,22 @@ function AdminHealthTab() {
               {stats.chunk_overlap}
             </strong>
           </div>
+
+          <div>
+            <span>Cross-encoder reranker</span>
+
+            <strong>
+              {stats.reranker_enabled ? "Enabled" : "Disabled"}
+            </strong>
+          </div>
+
+          <div>
+            <span>Query rewrite</span>
+
+            <strong>
+              {stats.query_rewrite_enabled ? "Enabled" : "Disabled"}
+            </strong>
+          </div>
         </div>
       </section>
     </>

@@ -108,8 +108,19 @@ export function AuthProvider({ children }) {
         });
       })
       .catch(() => {
-        // Rejected token: client.js already cleared storage and fired
-        // onUnauthorized -> clearAuth() has already run. Nothing more to do.
+        // Two different failure shapes land here:
+        //   1. The token was genuinely rejected (401) — client.js already
+        //      cleared storage and fired onUnauthorized -> clearAuth()
+        //      has already run, so isLoading is already false.
+        //   2. A network failure (Render cold start, timeout, offline,
+        //      CORS) — nothing else runs in that case, so isLoading
+        //      would otherwise stay true forever and the app would be
+        //      stuck on "Loading…" permanently.
+        // Setting isLoading: false unconditionally here handles case 2
+        // without disturbing case 1 (already false, so this is a no-op
+        // there). The person just lands on the logged-out landing page
+        // instead of hanging — they can retry once the backend is warm.
+        setState((s) => (s.isLoading ? { ...s, isLoading: false } : s));
       });
   }, []);
 
@@ -134,8 +145,8 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const completePasswordReset = useCallback(async (newPassword) => {
-    await authApi.resetPassword(newPassword);
+  const completePasswordReset = useCallback(async (currentPassword, newPassword) => {
+    await authApi.resetPassword(currentPassword, newPassword);
     const meta = readSessionMeta();
     writeSessionMeta({ ...meta, mustResetPassword: false });
     setState((s) => ({ ...s, mustResetPassword: false }));

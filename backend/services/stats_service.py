@@ -6,6 +6,8 @@ from backend.services.embedding_service import (
     EMBEDDING_PROVIDER,
     get_embedding_model_name,
 )
+from backend.services.query_rewrite_service import is_query_rewrite_enabled
+from backend.services.rerank_service import is_cross_encoder_enabled
 
 from backend.config import (
     VECTOR_DATABASE,
@@ -64,7 +66,11 @@ def get_stats():
 
         "chunk_size": CHUNK_SIZE,
 
-        "chunk_overlap": CHUNK_OVERLAP
+        "chunk_overlap": CHUNK_OVERLAP,
+
+        "reranker_enabled": is_cross_encoder_enabled(),
+
+        "query_rewrite_enabled": is_query_rewrite_enabled()
 
     }
 
