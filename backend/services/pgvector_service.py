@@ -79,19 +79,20 @@ def _insert_chunks(connection, records: list, embeddings) -> None:
     if not values:
         return
 
-    connection.executemany(
-        """
-        INSERT INTO public.resolveiq_chunks (
-            chunk_id,
-            document_name,
-            chunk,
-            page_number,
-            source_location,
-            embedding
-        ) VALUES (%s::uuid, %s, %s, %s, %s, %s::extensions.vector)
-        """,
-        values,
-    )
+    with connection.cursor() as cursor:
+        cursor.executemany(
+            """
+            INSERT INTO public.resolveiq_chunks (
+                chunk_id,
+                document_name,
+                chunk,
+                page_number,
+                source_location,
+                embedding
+            ) VALUES (%s::uuid, %s, %s, %s, %s, %s::extensions.vector)
+            """,
+            values,
+        )
 
 
 def commit_processed_document(

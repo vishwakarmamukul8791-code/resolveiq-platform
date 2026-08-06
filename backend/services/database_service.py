@@ -173,17 +173,18 @@ def save_collection(namespace: str, records: list) -> None:
             for position, record in enumerate(records)
         ]
 
-        connection.executemany(
-            """
-            INSERT INTO public.resolveiq_records (
-                namespace,
-                record_key,
-                position,
-                payload
-            ) VALUES (%s, %s, %s, %s)
-            """,
-            values,
-        )
+        with connection.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO public.resolveiq_records (
+                    namespace,
+                    record_key,
+                    position,
+                    payload
+                ) VALUES (%s, %s, %s, %s)
+                """,
+                values,
+            )
 
 
 @contextmanager
