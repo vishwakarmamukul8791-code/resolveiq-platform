@@ -47,6 +47,13 @@ export const tokenStorage = {
       /* no-op */
     }
   },
+  isPersistent() {
+    try {
+      return localStorage.getItem(TOKEN_KEY) !== null;
+    } catch {
+      return false;
+    }
+  },
 };
 
 export class ApiError extends Error {

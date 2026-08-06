@@ -6,6 +6,13 @@ from backend.services.health_service import get_health_status
 router = APIRouter()
 
 
+@router.get("/health/live")
+def liveness():
+    """Process-only probe; external dependencies are checked by /health."""
+
+    return {"status": "alive"}
+
+
 @router.get("/health")
 def health():
     """

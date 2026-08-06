@@ -7,6 +7,14 @@ from functools import wraps
 from pathlib import Path
 from threading import RLock
 
+from backend.services.database_service import (
+    collection_transaction,
+    load_collection,
+    save_collection,
+)
+from backend.services.persistence_config import is_supabase_backend
+from backend.services.storage_paths import DATA_DIR
+
 
 class StorageCorruptionError(RuntimeError):
     """Raised instead of silently replacing malformed persisted state."""
@@ -37,6 +45,12 @@ def synchronized_storage(path: Path):
     def decorator(function):
         @wraps(function)
         def wrapped(*args, **kwargs):
+            if is_supabase_backend():
+                namespace = _collection_namespace(path)
+
+                with collection_transaction(namespace):
+                    return function(*args, **kwargs)
+
             with storage_lock(path):
                 return function(*args, **kwargs)
 
@@ -45,8 +59,20 @@ def synchronized_storage(path: Path):
     return decorator
 
 
+def _collection_namespace(path: Path) -> str:
+    resolved = Path(path).resolve()
+
+    try:
+        return resolved.relative_to(DATA_DIR).as_posix()
+    except ValueError:
+        return resolved.name
+
+
 def load_json_list(path: Path) -> list:
     path = Path(path)
+
+    if is_supabase_backend():
+        return load_collection(_collection_namespace(path))
 
     with storage_lock(path):
         if not path.is_file():
@@ -70,6 +96,13 @@ def load_json_list(path: Path) -> list:
 
 def save_json(path: Path, data) -> None:
     path = Path(path)
+
+    if is_supabase_backend():
+        if not isinstance(data, list):
+            raise TypeError("Database-backed JSON storage requires a list.")
+
+        save_collection(_collection_namespace(path), data)
+        return
 
     with storage_lock(path):
         path.parent.mkdir(parents=True, exist_ok=True)

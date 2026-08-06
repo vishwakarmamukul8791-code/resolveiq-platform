@@ -4,11 +4,15 @@ from backend.services.document_registry import load_registry
 from backend.services.document_registry import REGISTRY_PATH
 from backend.services.faiss_service import load_faiss_index
 from backend.services.logging_service import log_error
+from backend.services.persistence_config import is_supabase_backend
 from backend.services.storage_paths import DATA_DIR
 from backend.services.vector_store import METADATA_PATH, load_metadata
 
 
 def get_health_status():
+    if is_supabase_backend():
+        return _get_supabase_health_status()
+
     health = {}
     index = None
     metadata = None
@@ -115,5 +119,76 @@ def get_health_status():
         if all(required_states)
         else "Unhealthy"
     )
+
+    return health
+
+
+def _get_supabase_health_status():
+    from backend.services.database_service import database_is_reachable
+    from backend.services.pgvector_service import count_chunks
+
+    health = {}
+    database_ready = database_is_reachable()
+
+    health["database"] = (
+        "Connected" if database_ready else "Unavailable"
+    )
+    health["object_storage"] = (
+        "Configured"
+        if (
+            os.getenv("SUPABASE_URL")
+            and os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+            and os.getenv(
+                "SUPABASE_STORAGE_BUCKET",
+                "resolveiq-documents",
+            )
+        )
+        else "Missing"
+    )
+
+    metadata = None
+
+    if database_ready:
+        try:
+            metadata = load_metadata()
+            vector_count = count_chunks()
+            load_registry()
+            health["vector_store"] = "Loaded"
+            health["registry"] = "Loaded"
+            health["index_consistency"] = (
+                "In sync"
+                if vector_count == len(metadata)
+                else "Out of sync"
+            )
+        except Exception as exc:
+            log_error(
+                "Supabase persistence health check failed: "
+                f"{type(exc).__name__}"
+            )
+            health["vector_store"] = "Unavailable"
+            health["registry"] = "Unavailable"
+            health["index_consistency"] = "Unknown"
+    else:
+        health["vector_store"] = "Unavailable"
+        health["registry"] = "Unavailable"
+        health["index_consistency"] = "Unknown"
+
+    health["gemini_api"] = (
+        "Configured" if os.getenv("GEMINI_API_KEY") else "Missing"
+    )
+    health["jwt_secret"] = (
+        "Configured" if os.getenv("JWT_SECRET_KEY") else "Missing"
+    )
+
+    required_states = (
+        health["database"] == "Connected",
+        health["object_storage"] == "Configured",
+        health["vector_store"] == "Loaded",
+        health["registry"] == "Loaded",
+        health["index_consistency"] == "In sync",
+        health["gemini_api"] == "Configured",
+        health["jwt_secret"] == "Configured",
+    )
+    health["status"] = "Healthy" if all(required_states) else "Unhealthy"
 
     return health

@@ -24,6 +24,13 @@ from backend.routes.debug_retrieval import router as debug_retrieval_router
 from backend.routes.auth import router as auth_router
 from backend.routes.admin import router as admin_router
 from backend.services.auth_service import bootstrap_admin_from_env
+from backend.services.database_service import (
+    check_database_schema,
+    close_database_pool,
+)
+from backend.services.persistence_config import (
+    validate_persistence_configuration,
+)
 
 is_production = (
     os.getenv("ENVIRONMENT", "development").strip().lower()
@@ -68,8 +75,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_persistence_configuration()
+    check_database_schema()
     bootstrap_admin_from_env()
-    yield
+
+    try:
+        yield
+    finally:
+        close_database_pool()
 
 
 app = FastAPI(

@@ -8,9 +8,12 @@ from backend.services.embedding_service import (
 )
 from backend.services.query_rewrite_service import is_query_rewrite_enabled
 from backend.services.rerank_service import is_cross_encoder_enabled
+from backend.services.persistence_config import (
+    get_vector_database_name,
+    is_supabase_backend,
+)
 
 from backend.config import (
-    VECTOR_DATABASE,
     TOP_K,
     CHUNK_SIZE,
     CHUNK_OVERLAP
@@ -23,26 +26,32 @@ def get_stats():
 
     registry = load_registry()
 
-    index_readable = True
+    if is_supabase_backend():
+        from backend.services.pgvector_service import count_chunks
 
-    try:
-        index = load_faiss_index()
-        total_vectors = 0 if index is None else index.ntotal
-    except Exception:
-        index_readable = False
-        index = None
-        total_vectors = 0
+        total_vectors = count_chunks()
+        index_metadata_in_sync = total_vectors == len(metadata)
+    else:
+        index_readable = True
 
-    index_metadata_in_sync = (
-        index_readable
-        and (
-            (index is None and not metadata)
-            or (
-                index is not None
-                and index.ntotal == len(metadata)
+        try:
+            index = load_faiss_index()
+            total_vectors = 0 if index is None else index.ntotal
+        except Exception:
+            index_readable = False
+            index = None
+            total_vectors = 0
+
+        index_metadata_in_sync = (
+            index_readable
+            and (
+                (index is None and not metadata)
+                or (
+                    index is not None
+                    and index.ntotal == len(metadata)
+                )
             )
         )
-    )
 
     stats = {
 
@@ -60,7 +69,7 @@ def get_stats():
 
         "embedding_dimension": EMBEDDING_DIMENSION,
 
-        "vector_database": VECTOR_DATABASE,
+        "vector_database": get_vector_database_name(),
 
         "top_k": TOP_K,
 
