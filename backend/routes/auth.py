@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Form
+from fastapi import APIRouter, HTTPException, Depends, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.services.logging_service import log_info, log_error
@@ -7,16 +7,23 @@ from backend.services.auth_service import (
     update_last_login,
     create_access_token,
     set_new_password,
+    verify_current_password,
     get_current_user
 )
 from backend.services.session_service import create_session, close_session
+from backend.services.rate_limit_service import rate_limit_login
 
 router = APIRouter()
 
 
 @router.post("/auth/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+):
     try:
+        rate_limit_login(request)
+
         user = authenticate(form_data.username, form_data.password)
 
         if user is None:
@@ -25,7 +32,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
         update_last_login(form_data.username)
         session_id = create_session(form_data.username)
-        token = create_access_token(form_data.username, user["role"])
+        token = create_access_token(
+            form_data.username,
+            user["role"],
+            user.get("token_version", 0),
+        )
 
         log_info(f"Login: {form_data.username} role={user['role']} session={session_id[:8]}")
 
@@ -67,6 +78,7 @@ def logout(
 
 @router.post("/auth/reset-password")
 def reset_password(
+    current_password: str = Form(...),
     new_password: str = Form(...),
     current_user: dict = Depends(get_current_user)
 ):
@@ -74,10 +86,27 @@ def reset_password(
         if len(new_password) < 8:
             raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
 
-        set_new_password(current_user["username"], new_password)
+        if not verify_current_password(current_user["username"], current_password):
+            log_info(f"Password reset rejected — wrong current password: {current_user['username']}")
+            raise HTTPException(status_code=401, detail="Current password is incorrect.")
+
+        updated_user = set_new_password(
+            current_user["username"],
+            new_password,
+        )
+        replacement_token = create_access_token(
+            updated_user["username"],
+            updated_user["role"],
+            updated_user.get("token_version", 0),
+        )
         log_info(f"Password reset: {current_user['username']}")
 
-        return {"message": "Password updated successfully.", "must_reset_password": False}
+        return {
+            "message": "Password updated successfully.",
+            "must_reset_password": False,
+            "access_token": replacement_token,
+            "token_type": "bearer",
+        }
 
     except HTTPException:
         raise

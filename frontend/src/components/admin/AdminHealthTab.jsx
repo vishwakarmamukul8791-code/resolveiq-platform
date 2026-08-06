@@ -10,7 +10,7 @@ import {
 } from "../../api/client";
 
 
-const COMPONENT_LABELS = {
+const LOCAL_COMPONENT_LABELS = {
   faiss_index: "FAISS Index",
   metadata: "Metadata Store",
   registry: "Document Registry",
@@ -20,11 +20,22 @@ const COMPONENT_LABELS = {
   jwt_secret: "JWT Secret",
 };
 
+const SUPABASE_COMPONENT_LABELS = {
+  database: "Supabase PostgreSQL",
+  object_storage: "Private Document Storage",
+  vector_store: "pgvector Store",
+  registry: "Document Registry",
+  index_consistency: "Vectors / Metadata",
+  gemini_api: "Gemini API Key",
+  jwt_secret: "JWT Secret",
+};
+
 const OK_VALUES = new Set([
   "Loaded",
   "Configured",
   "In sync",
   "Writable",
+  "Connected",
 ]);
 
 
@@ -101,8 +112,15 @@ function AdminHealthTab() {
   const isHealthy =
     health.status === "Healthy";
 
+  const usesPgvector =
+    stats.vector_database.includes("pgvector");
+
+  const componentLabels = usesPgvector
+    ? SUPABASE_COMPONENT_LABELS
+    : LOCAL_COMPONENT_LABELS;
+
   const components = Object.entries(
-    COMPONENT_LABELS
+    componentLabels
   ).map(([key, label]) => ({
     key,
     label,
@@ -207,7 +225,11 @@ function AdminHealthTab() {
             {stats.total_vectors}
           </strong>
 
-          <p>In the FAISS index</p>
+          <p>
+            {usesPgvector
+              ? "In PostgreSQL pgvector"
+              : "In the FAISS index"}
+          </p>
         </div>
 
         <div className="admin-kpi-card">
@@ -284,6 +306,22 @@ function AdminHealthTab() {
 
             <strong>
               {stats.chunk_overlap}
+            </strong>
+          </div>
+
+          <div>
+            <span>Cross-encoder reranker</span>
+
+            <strong>
+              {stats.reranker_enabled ? "Enabled" : "Disabled"}
+            </strong>
+          </div>
+
+          <div>
+            <span>Query rewrite</span>
+
+            <strong>
+              {stats.query_rewrite_enabled ? "Enabled" : "Disabled"}
             </strong>
           </div>
         </div>

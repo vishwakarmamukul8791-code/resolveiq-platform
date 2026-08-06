@@ -20,6 +20,7 @@ from backend.services.llm_service import (
 )
 from backend.services.logging_service import log_error, log_info
 from backend.services.query_rewrite_service import rewrite_query
+from backend.services.rate_limit_service import rate_limit_ask
 from backend.services.rerank_service import rerank
 from backend.services.retrieval_contract import (
     build_retrieval_response
@@ -217,11 +218,13 @@ def ask_question(
     """
 
     try:
+        username = current_user["username"]
+
+        rate_limit_ask(username)
+
         query, document_name, conversation_id = _normalize_request(
             payload
         )
-
-        username = current_user["username"]
 
         log_info(
             f"/ask — user={username} "

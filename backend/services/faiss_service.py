@@ -2,13 +2,23 @@ import os
 import tempfile
 from pathlib import Path
 
-import faiss
 import numpy as np
 
 from backend.services.storage_paths import data_path
 
 
 INDEX_PATH = data_path("vector_store", "index.faiss")
+
+
+def _faiss_module():
+    try:
+        import faiss
+    except ImportError as exc:
+        raise RuntimeError(
+            "Local FAISS storage requires the faiss-cpu package."
+        ) from exc
+
+    return faiss
 
 
 def _prepare_embeddings(embeddings):
@@ -24,6 +34,7 @@ def _prepare_embeddings(embeddings):
 
 def create_faiss_index(embeddings):
     prepared = _prepare_embeddings(embeddings)
+    faiss = _faiss_module()
 
     dimension = prepared.shape[1]
     index = faiss.IndexFlatL2(dimension)
@@ -40,6 +51,7 @@ def create_staged_index(embeddings, existing_index=None):
     steps have completed successfully.
     """
     prepared = _prepare_embeddings(embeddings)
+    faiss = _faiss_module()
     dimension = prepared.shape[1]
 
     if existing_index is None:
@@ -59,6 +71,7 @@ def create_staged_index(embeddings, existing_index=None):
 
 
 def save_faiss_index(index):
+    faiss = _faiss_module()
     INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
     temp_path = None
 
@@ -83,6 +96,7 @@ def load_faiss_index():
     if not INDEX_PATH.is_file():
         return None
 
+    faiss = _faiss_module()
     return faiss.read_index(str(INDEX_PATH))
 
 

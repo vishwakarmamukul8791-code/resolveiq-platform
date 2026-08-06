@@ -6,6 +6,12 @@ import "../styles/status.css";
 
 function PlatformStatus() {
   const [apiStatus, setApiStatus] = useState("checking");
+  // null while /stats hasn't resolved yet — the retrieval-pipeline line
+  // below falls back to the generic "Hybrid" label in that case rather
+  // than assuming reranking is on, since it previously claimed
+  // "Hybrid + reranked" unconditionally even when ENABLE_CROSS_ENCODER
+  // was off in production.
+  const [rerankerEnabled, setRerankerEnabled] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -21,6 +27,18 @@ function PlatformStatus() {
         if (active) {
           setApiStatus("offline");
         }
+      });
+
+    systemApi
+      .stats()
+      .then((data) => {
+        if (active) {
+          setRerankerEnabled(Boolean(data.reranker_enabled));
+        }
+      })
+      .catch(() => {
+        // Non-critical — the label just falls back to the generic
+        // "Hybrid" wording below instead of overclaiming.
       });
 
     return () => {
@@ -65,7 +83,7 @@ function PlatformStatus() {
         <div className="status-item">
           <i aria-hidden="true" />
           <span>Retrieval Pipeline</span>
-          <strong>Hybrid + reranked</strong>
+          <strong>{rerankerEnabled ? "Hybrid + reranked" : "Hybrid (RRF)"}</strong>
         </div>
 
         <div className="status-item">

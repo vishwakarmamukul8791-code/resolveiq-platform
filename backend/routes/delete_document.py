@@ -9,6 +9,12 @@ from backend.services.faiss_service import (
 )
 from backend.services.file_path_service import resolve_raw_document_path
 from backend.services.logging_service import log_error, log_info
+from backend.services.object_storage_service import (
+    delete_document_object,
+    document_exists,
+)
+from backend.services.persistence_config import is_supabase_backend
+from backend.services.pgvector_service import delete_document_data
 from backend.services.reindex_service import (
     build_index_from_metadata,
     persist_rebuilt_index,
@@ -104,7 +110,11 @@ def delete_document(
         original_registry = load_registry()
         original_metadata = load_metadata()
 
-        file_exists = file_path.is_file()
+        file_exists = (
+            document_exists(safe_filename)
+            if is_supabase_backend()
+            else file_path.is_file()
+        )
 
         registry_entry_exists = any(
             document["document_name"] == safe_filename
@@ -126,10 +136,6 @@ def delete_document(
                 detail="Document not found"
             )
 
-        original_index = _load_consistent_original_index(
-            original_metadata
-        )
-
         proposed_registry = [
             document
             for document in original_registry
@@ -144,6 +150,47 @@ def delete_document(
 
         removed_chunks = (
             len(original_metadata) - len(proposed_metadata)
+        )
+
+        if is_supabase_backend():
+            removed_chunks = delete_document_data(
+                safe_filename,
+                proposed_registry,
+            )
+
+            object_deleted = False
+
+            if file_exists:
+                try:
+                    object_deleted = delete_document_object(safe_filename)
+                except Exception as cleanup_exc:
+                    # Database records are already removed atomically. An
+                    # orphaned private object is inaccessible through the
+                    # app and can be retried manually without resurrecting
+                    # deleted document data.
+                    log_error(
+                        "Document record deleted but object cleanup failed: "
+                        f"{type(cleanup_exc).__name__}"
+                    )
+
+            remaining_vectors = len(proposed_metadata)
+
+            log_info(
+                f"Document deleted: {safe_filename} "
+                f"chunks_removed={removed_chunks} "
+                f"by admin={current_user['username']}"
+            )
+
+            return {
+                "message": "Document deleted successfully",
+                "filename": safe_filename,
+                "removed_chunks": removed_chunks,
+                "remaining_vectors": remaining_vectors,
+                "object_deleted": object_deleted,
+            }
+
+        original_index = _load_consistent_original_index(
+            original_metadata
         )
 
         # Build replacement index before changing persisted state.

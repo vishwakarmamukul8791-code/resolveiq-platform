@@ -47,6 +47,13 @@ export const tokenStorage = {
       /* no-op */
     }
   },
+  isPersistent() {
+    try {
+      return localStorage.getItem(TOKEN_KEY) !== null;
+    } catch {
+      return false;
+    }
+  },
 };
 
 export class ApiError extends Error {
@@ -192,10 +199,10 @@ export const authApi = {
       form: { session_id: sessionId },
     });
   },
-  resetPassword(newPassword) {
+  resetPassword(currentPassword, newPassword) {
     return request("/auth/reset-password", {
       method: "POST",
-      form: { new_password: newPassword },
+      form: { current_password: currentPassword, new_password: newPassword },
     });
   },
   getMe() {

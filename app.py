@@ -7,6 +7,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.routes.upload import router as upload_router
 from backend.routes.process import router as process_router
@@ -23,6 +24,13 @@ from backend.routes.debug_retrieval import router as debug_retrieval_router
 from backend.routes.auth import router as auth_router
 from backend.routes.admin import router as admin_router
 from backend.services.auth_service import bootstrap_admin_from_env
+from backend.services.database_service import (
+    check_database_schema,
+    close_database_pool,
+)
+from backend.services.persistence_config import (
+    validate_persistence_configuration,
+)
 
 is_production = (
     os.getenv("ENVIRONMENT", "development").strip().lower()
@@ -35,10 +43,46 @@ enable_debug_routes = (
 )
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Baseline security headers on every response. This is an API-only
+    backend (the React app is a separate static deployment), so the CSP
+    here is deliberately locked down to "nothing renders here" rather
+    than a policy tuned for serving HTML/JS — there's no frontend markup
+    coming from this service that a content policy would need to allow.
+    """
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), camera=(), microphone=()"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; frame-ancestors 'none'"
+        )
+
+        if is_production:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains"
+            )
+
+        return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_persistence_configuration()
+    check_database_schema()
     bootstrap_admin_from_env()
-    yield
+
+    try:
+        yield
+    finally:
+        close_database_pool()
 
 
 app = FastAPI(
@@ -74,6 +118,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(upload_router)
 app.include_router(process_router)
