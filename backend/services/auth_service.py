@@ -470,6 +470,11 @@ def set_new_password(username: str, new_password: str):
 
     _save_users(users)
 
+    return next(
+        user for user in users
+        if user["username"] == username
+    )
+
 
 @synchronized_storage(USERS_PATH)
 def admin_reset_password(target_username: str):

@@ -90,10 +90,23 @@ def reset_password(
             log_info(f"Password reset rejected — wrong current password: {current_user['username']}")
             raise HTTPException(status_code=401, detail="Current password is incorrect.")
 
-        set_new_password(current_user["username"], new_password)
+        updated_user = set_new_password(
+            current_user["username"],
+            new_password,
+        )
+        replacement_token = create_access_token(
+            updated_user["username"],
+            updated_user["role"],
+            updated_user.get("token_version", 0),
+        )
         log_info(f"Password reset: {current_user['username']}")
 
-        return {"message": "Password updated successfully.", "must_reset_password": False}
+        return {
+            "message": "Password updated successfully.",
+            "must_reset_password": False,
+            "access_token": replacement_token,
+            "token_type": "bearer",
+        }
 
     except HTTPException:
         raise

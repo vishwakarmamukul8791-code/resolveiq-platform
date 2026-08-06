@@ -1,9 +1,9 @@
-import faiss
 import numpy as np
 
 from backend.config import TOP_K
 from backend.services.embedding_service import generate_embeddings
 from backend.services.faiss_service import load_faiss_index
+from backend.services.persistence_config import is_supabase_backend
 from backend.services.reindex_service import rebuild_index
 from backend.services.vector_store import load_metadata
 
@@ -53,6 +53,13 @@ def _search_document_scope(
         dtype="float32"
     )
 
+    try:
+        import faiss
+    except ImportError as exc:
+        raise RuntimeError(
+            "Local retrieval requires the faiss-cpu package."
+        ) from exc
+
     scoped_index = faiss.IndexFlatL2(index.d)
     scoped_index.add(scoped_vectors)
 
@@ -81,6 +88,20 @@ def search_similar_chunks(
 
     if top_k <= 0:
         return [], []
+
+    if is_supabase_backend():
+        from backend.services.pgvector_service import search_pgvector
+
+        query_embedding = np.ascontiguousarray(
+            generate_embeddings([query]),
+            dtype="float32",
+        )
+
+        return search_pgvector(
+            query_embedding,
+            top_k=top_k,
+            document_name=document_name,
+        )
 
     metadata = load_metadata()
 

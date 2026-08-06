@@ -1,10 +1,14 @@
 import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from backend.services.auth_service import require_admin
 from backend.services.file_path_service import resolve_raw_document_path
 from backend.services.logging_service import log_error, log_info
+from backend.services.object_storage_service import upload_unique_document
+from backend.services.persistence_config import is_supabase_backend
 
 
 router = APIRouter()
@@ -105,6 +109,28 @@ def _validate_file_content(file_path):
         ) from exc
 
 
+async def _write_upload(file: UploadFile, file_path: Path) -> None:
+    total_bytes = 0
+    max_bytes = _get_max_upload_bytes()
+
+    with file_path.open("wb") as buffer:
+        while chunk := await file.read(READ_CHUNK_SIZE):
+            total_bytes += len(chunk)
+
+            if total_bytes > max_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail=(
+                        "File is too large. Maximum upload size is "
+                        f"{max_bytes // (1024 * 1024)} MB."
+                    ),
+                )
+
+            buffer.write(chunk)
+
+    _validate_file_content(file_path)
+
+
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -118,31 +144,27 @@ async def upload_file(
             detail=str(exc)
         ) from exc
 
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    file_path = _reserve_upload_path(file_path)
+    temporary_directory = None
+
+    if is_supabase_backend():
+        temporary_directory = TemporaryDirectory(
+            prefix="resolveiq-upload-"
+        )
+        file_path = Path(temporary_directory.name) / file_path.name
+    else:
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path = _reserve_upload_path(file_path)
 
     try:
-        total_bytes = 0
-        max_bytes = _get_max_upload_bytes()
+        await _write_upload(file, file_path)
 
-        with file_path.open("wb") as buffer:
-            while chunk := await file.read(READ_CHUNK_SIZE):
-                total_bytes += len(chunk)
-
-                if total_bytes > max_bytes:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=(
-                            "File is too large. Maximum upload size is "
-                            f"{max_bytes // (1024 * 1024)} MB."
-                        ),
-                    )
-
-                buffer.write(chunk)
-
-        _validate_file_content(file_path)
-
-        safe_filename = file_path.name
+        if is_supabase_backend():
+            safe_filename = upload_unique_document(
+                file_path,
+                file_path.name,
+            )
+        else:
+            safe_filename = file_path.name
 
         log_info(
             f"File uploaded successfully: {safe_filename} "
@@ -166,3 +188,7 @@ async def upload_file(
             status_code=500,
             detail="Unable to upload file."
         ) from exc
+
+    finally:
+        if temporary_directory is not None:
+            temporary_directory.cleanup()

@@ -33,7 +33,7 @@ The Render Free backend can take up to a minute to wake after inactivity.
 - Authenticates admins and support engineers with JWT and role checks.
 - Accepts PDF, CSV, and TXT knowledge-base documents.
 - Extracts, cleans, chunks, embeds, and indexes document content.
-- Combines BM25 and FAISS results with Reciprocal Rank Fusion (RRF).
+- Combines BM25 and semantic vector results with Reciprocal Rank Fusion (RRF).
 - Optionally reranks candidates with a cross-encoder.
 - Sends retrieved context to Gemini only when evidence passes confidence gating.
 - Returns source document, page, and location citations.
@@ -51,7 +51,7 @@ Optional query rewrite (safe fallback to original)
         +-----------------------+
         |                       |
         v                       v
-BM25 lexical search      FAISS semantic search
+BM25 lexical search      pgvector / FAISS search
         |                       |
         +-----------+-----------+
                     |
@@ -90,13 +90,13 @@ BM25 lexical search      FAISS semantic search
 | Backend | FastAPI, Python 3.12, Uvicorn |
 | Answer generation | Google Gemini |
 | Embeddings | Gemini in memory-constrained production; SentenceTransformers locally |
-| Vector index | FAISS `IndexFlatL2` |
+| Vector database | Supabase PostgreSQL + pgvector in production; FAISS locally |
 | Lexical retrieval | BM25 (`rank-bm25`) |
 | Fusion | Reciprocal Rank Fusion |
 | Optional reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | Authentication | JWT HS256, PBKDF2-HMAC-SHA256 |
-| Runtime state | JSON, uploaded files, and FAISS under `DATA_DIR` |
-| Hosting | Vercel frontend, Render backend |
+| Persistent state | Supabase PostgreSQL, pgvector, and private Storage |
+| Hosting | Vercel frontend, stateless Render backend, Supabase data layer |
 
 ## Project structure
 
@@ -108,6 +108,7 @@ BM25 lexical search      FAISS semantic search
 |-- requirements-render.txt
 |-- .env.example
 |-- .github/workflows/ci.yml
+|-- supabase/migrations/
 |-- backend/
 |   |-- eval/
 |   |-- routes/
@@ -119,7 +120,8 @@ BM25 lexical search      FAISS semantic search
 `-- tests/
 ```
 
-Runtime files are generated under `DATA_DIR` and ignored by Git:
+Local development files are generated under `DATA_DIR` and ignored by Git.
+Production uses Supabase instead:
 
 ```text
 data/raw/                         uploaded source files
@@ -158,6 +160,7 @@ Put the generated value and your Gemini key in `.env`:
 ENVIRONMENT=development
 GEMINI_API_KEY=your_gemini_api_key
 JWT_SECRET_KEY=your_generated_secret
+PERSISTENCE_BACKEND=local
 DATA_DIR=data
 FRONTEND_ORIGIN=
 EMBEDDING_PROVIDER=local
@@ -202,7 +205,12 @@ The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://
 | `JWT_SECRET_KEY` | Yes | JWT signing and verification |
 | `ENVIRONMENT` | No | Use `production` to disable API docs and local CORS origins |
 | `FRONTEND_ORIGIN` | Production | Comma-separated allowed frontend origins |
-| `DATA_DIR` | No | Runtime state directory; defaults to repository `data/` |
+| `PERSISTENCE_BACKEND` | No | `local` for development or `supabase` for durable production state |
+| `DATA_DIR` | Local only | Local runtime directory; defaults to repository `data/` |
+| `SUPABASE_DATABASE_URL` | Supabase | Server-only PostgreSQL Session pooler URL |
+| `SUPABASE_URL` | Supabase | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase | Server-only private Storage credential |
+| `SUPABASE_STORAGE_BUCKET` | No | Private bucket; defaults to `resolveiq-documents` |
 | `EMBEDDING_PROVIDER` | No | `local` or `gemini` |
 | `EMBEDDING_MODEL` | No | Gemini embedding model name |
 | `EMBEDDING_DIMENSION` | No | Embedding/index dimension; defaults to 384 |
@@ -214,18 +222,16 @@ The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://
 | `BOOTSTRAP_ADMIN_PASSWORD` | Deployment | First-admin bootstrap password; keep secret |
 | `BOOTSTRAP_ADMIN_RESET_VERSION` | No | Change to intentionally reset the bootstrap admin password |
 
-## Production persistence warning
+## Production persistence
 
-ResolveIQ currently stores accounts, sessions, history, uploads, metadata, and FAISS state on the backend filesystem.
+The Render service is stateless. Accounts, sessions, history, the document
+registry, chunks, and embeddings persist in Supabase PostgreSQL; semantic
+retrieval runs through pgvector; original source files persist in a private
+Supabase Storage bucket. A Render restart or redeploy therefore does not reset
+the admin password or erase application data.
 
-Render Free storage is ephemeral. A redeploy, restart, or instance replacement can remove all runtime state. `DATA_DIR` makes the storage location configurable; it does not make a Free filesystem persistent. The bootstrap variables can recreate the first admin, but they cannot restore uploaded documents or history.
-
-For retained production state, use one of these approaches:
-
-1. Attach a persistent Render disk, set `DATA_DIR` to its mount path (for example `/var/data`), and run one backend instance.
-2. Move users/sessions/history to PostgreSQL, uploads to object storage, and vectors to a persistent vector store.
-
-Do not treat the current Render Free deployment as durable storage.
+Apply the SQL migration and configure Render by following
+[the Supabase deployment guide](docs/SUPABASE_DEPLOYMENT.md).
 
 ## Docker
 
@@ -238,9 +244,11 @@ docker run --rm -p 8000:8000 `
   -e GEMINI_API_KEY=your_key `
   -e JWT_SECRET_KEY=your_secret `
   -e FRONTEND_ORIGIN=http://localhost:5173 `
+  -e SUPABASE_DATABASE_URL=your_session_pooler_url `
+  -e SUPABASE_URL=https://your-project.supabase.co `
+  -e SUPABASE_SERVICE_ROLE_KEY=your_server_only_key `
   -e BOOTSTRAP_ADMIN_USERNAME=admin `
   -e BOOTSTRAP_ADMIN_PASSWORD=replace_with_12_plus_chars `
-  -v resolveiq-data:/app/data `
   resolveiq-api
 ```
 
@@ -289,6 +297,7 @@ python -m backend.eval.run_eval
 | GET | `/admin/system-health` | Admin |
 | GET | `/debug/retrieval` | Admin, development-only when enabled |
 | GET | `/health` | Public |
+| GET | `/health/live` | Public liveness probe |
 | GET | `/stats` | Public |
 
 ## Security and reliability controls
@@ -298,9 +307,9 @@ python -m backend.eval.run_eval
 - Ownership checks for history and session mutations
 - Filename/path traversal protection and file-content validation
 - Streamed, size-bounded uploads with partial-file cleanup
-- Atomic JSON and FAISS writes; corrupted JSON fails closed
-- Serialized in-process state mutations and document index operations
-- FAISS/metadata consistency checks and rollback paths
+- Transactional PostgreSQL writes with cross-instance advisory locks
+- Private object storage for source documents
+- Atomic chunk, embedding, and registry mutations through pgvector/PostgreSQL
 - Provider timeout/error mapping without exposing provider internals
 - Retrieval-method-aware confidence gating and LLM abstention downgrade
 - UTC timestamps with legacy naive-UTC display compatibility
@@ -308,7 +317,8 @@ python -m backend.eval.run_eval
 
 ## Current deployment limits
 
-- Local JSON/FAISS storage is designed for a single API instance, not horizontal scaling.
+- Supabase Free may pause after extended inactivity and does not provide paid-tier uptime guarantees.
+- Local JSON/FAISS mode is for development and is not durable on Render Free.
 - Document processing is synchronous; large production workloads should use a background queue.
 - JWT access tokens do not use refresh tokens or a revocation list. Active status and password-reset state are still checked on every protected request.
 - Retrieval thresholds should be recalibrated whenever the embedding model, corpus, or reranker changes.

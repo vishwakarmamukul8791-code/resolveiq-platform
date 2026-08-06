@@ -146,7 +146,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const completePasswordReset = useCallback(async (currentPassword, newPassword) => {
-    await authApi.resetPassword(currentPassword, newPassword);
+    const persistToken = tokenStorage.isPersistent();
+    const result = await authApi.resetPassword(currentPassword, newPassword);
+
+    // Password changes revoke every previously issued JWT. Store the
+    // replacement token returned by the backend before the next API call,
+    // otherwise the dashboard would immediately receive 401 and log out.
+    tokenStorage.set(result.access_token, persistToken);
     const meta = readSessionMeta();
     writeSessionMeta({ ...meta, mustResetPassword: false });
     setState((s) => ({ ...s, mustResetPassword: false }));
