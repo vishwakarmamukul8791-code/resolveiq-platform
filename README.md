@@ -1,6 +1,6 @@
 # ResolveIQ — AI-Powered Incident Resolution Platform
 
-[![CI](https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant/actions/workflows/ci.yml)
+[![CI](https://github.com/vishwakarmamukul8791-code/resolveiq-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/vishwakarmamukul8791-code/resolveiq-platform/actions/workflows/ci.yml)
 
 ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for investigating IT incidents against an internal knowledge base. It combines lexical and semantic retrieval, confidence-aware answer generation, grounded citations, engineer history, and an admin operations dashboard.
 
@@ -8,7 +8,7 @@ ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for inve
 
 - Frontend: [resolveiq-five.vercel.app](https://resolveiq-five.vercel.app)
 - Backend health: [resolveiq-api-8lmh.onrender.com/health](https://resolveiq-api-8lmh.onrender.com/health)
-- Repository: [GitHub](https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant)
+- Repository: [GitHub](https://github.com/vishwakarmamukul8791-code/resolveiq-platform)
 
 The Render Free backend can take up to a minute to wake after inactivity.
 
@@ -138,8 +138,8 @@ data/vector_store/metadata.json   chunk metadata
 ### 1. Clone and create the backend environment
 
 ```powershell
-git clone https://github.com/vishwakarmamukul8791-code/intelligent-incident-resolution-assistant.git
-Set-Location intelligent-incident-resolution-assistant
+git clone https://github.com/vishwakarmamukul8791-code/resolveiq-platform.git
+Set-Location resolveiq-platform
 
 py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
@@ -189,7 +189,7 @@ Local API endpoints:
 Open a second PowerShell window:
 
 ```powershell
-Set-Location intelligent-incident-resolution-assistant\frontend
+Set-Location resolveiq-platform\frontend
 Copy-Item .env.example .env
 npm ci
 npm run dev
@@ -320,7 +320,7 @@ python -m backend.eval.run_eval
 - Supabase Free may pause after extended inactivity and does not provide paid-tier uptime guarantees.
 - Local JSON/FAISS mode is for development and is not durable on Render Free.
 - Document processing is synchronous; large production workloads should use a background queue.
-- JWT access tokens do not use refresh tokens or a revocation list. Active status and password-reset state are still checked on every protected request.
+- JWT access tokens do not use refresh tokens or a server-side blocklist of individually revoked tokens. Instead, each user carries a `token_version` counter, stamped into every token issued to them; a password change (self-service or admin-triggered) increments it, which invalidates every token issued before that change on their very next request — regardless of that token's remaining 12h lifetime. Active status and password-reset state are also checked on every protected request.
 - Retrieval thresholds should be recalibrated whenever the embedding model, corpus, or reranker changes.
 
 ## License

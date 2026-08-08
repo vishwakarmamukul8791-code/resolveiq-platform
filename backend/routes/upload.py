@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from backend.services.auth_service import require_admin
 from backend.services.file_path_service import resolve_raw_document_path
@@ -159,7 +160,17 @@ async def upload_file(
         await _write_upload(file, file_path)
 
         if is_supabase_backend():
-            safe_filename = upload_unique_document(
+            # upload_unique_document() makes a blocking httpx call to
+            # Supabase Storage (up to 30s). This route is async def, and
+            # a blocking call here would freeze FastAPI's entire event
+            # loop for that duration — every other concurrent request
+            # (logins, /ask, everything) would stall until this one
+            # upload's network call finished. run_in_threadpool offloads
+            # it to a worker thread instead, same as how FastAPI already
+            # handles this automatically for sync `def` routes like
+            # process_document/delete_document.
+            safe_filename = await run_in_threadpool(
+                upload_unique_document,
                 file_path,
                 file_path.name,
             )
