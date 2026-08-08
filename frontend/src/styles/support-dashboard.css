@@ -605,3 +605,55 @@
         font-size: 26px;
     }
 }
+
+
+@media (max-width: 640px) {
+
+    /* On a phone, the sidebar's collapsed state (72px) still ate enough
+       width that .support-main was squeezed into a very narrow column —
+       its heading text (font-size 26px+) had nowhere to wrap cleanly and
+       visually overlapped adjacent content. Fix: on mobile, the sidebar
+       becomes a fixed-position overlay drawer instead of a flex sibling
+       that shares horizontal space with the main content. It's hidden
+       off-screen by default and slides in on top of everything (not
+       squeezed alongside it) when opened via the existing toggle button —
+       same sidebarOpen state you already have, just rendered differently
+       at this width. */
+
+    .support-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 2000;
+
+        width: 240px;
+        height: 100vh;
+
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+    }
+
+    .support-dashboard:not(.sidebar-collapsed) .support-sidebar {
+        transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Collapsed state's icon-only width no longer applies on mobile —
+       the sidebar is either fully off-screen or fully open as an overlay. */
+    .sidebar-collapsed .support-sidebar {
+        width: 240px;
+    }
+
+    /* .support-main no longer shares a flex row with a variable-width
+       sidebar — it always gets the full viewport width now, since the
+       sidebar floats on top instead of pushing it. */
+    .support-main {
+        width: 100%;
+        min-width: 0;
+        padding: 20px 16px 12px;
+    }
+
+    .support-header h1 {
+        font-size: 20px;
+    }
+}

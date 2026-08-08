@@ -56,3 +56,48 @@
     padding: 8px 14px;
     border-radius: 20px;
 }
+
+/* =========================
+   RESPONSIVE (mobile)
+========================= */
+
+@media (max-width: 640px) {
+    .main-navbar {
+        /* was a fixed height: 76px — couldn't grow to fit wrapped text,
+           so overflow spilled out below the sticky navbar into the page
+           content underneath it. min-height lets it grow safely instead. */
+        height: auto;
+        min-height: 60px;
+        padding: 10px 16px;
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
+    .brand-mark-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .brand-section h3 {
+        font-size: 15px;
+    }
+
+    .brand-section span {
+        /* The full tagline ("AI-Powered Incident Resolution Platform")
+           has no room next to the logo/name on a phone-width screen —
+           it was wrapping across 3-4 lines and forcing the fixed-height
+           navbar to overflow. The logo + "ResolveIQ" name alone is
+           sufficient branding at this size. */
+        display: none;
+    }
+
+    .edition-badge {
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        padding: 5px 10px;
+    }
+
+    .navbar-right {
+        gap: 8px;
+    }
+}
