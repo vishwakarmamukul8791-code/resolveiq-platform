@@ -113,6 +113,19 @@ function ExchangeCard({ exchange, onViewSource }) {
 
 const GUEST_QUESTION_LIMIT = 5;
 
+// Picked directly from the actual demo knowledge base (INC-1009 to
+// INC-1020) — each one uses specific terms that appear verbatim in a
+// chunk (strong BM25 match) while also being a clear, natural question
+// (strong semantic match), so both retrievers agree and this reliably
+// produces High confidence for a first-time visitor instead of them
+// having to guess what's in the demo documents.
+const EXAMPLE_QUESTIONS = [
+  "Why am I seeing ORA-12154 TNS could not resolve the connect identifier?",
+  "How do I fix a Kubernetes pod stuck in CrashLoopBackOff?",
+  "We're getting HTTP 502 Bad Gateway errors during peak traffic — what's the cause?",
+  "Login is failing with an invalid_grant OAuth error — why?",
+];
+
 function GuestWorkspace() {
   const [query, setQuery] = useState("");
   const [exchanges, setExchanges] = useState([]);
@@ -138,9 +151,8 @@ function GuestWorkspace() {
   const askedCount = exchanges.filter((ex) => !ex.pending).length;
   const reachedLimit = askedCount >= GUEST_QUESTION_LIMIT;
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const trimmed = query.trim();
+  async function askQuestion(text) {
+    const trimmed = text.trim();
     if (!trimmed || isAsking || reachedLimit) return;
 
     setError(null);
@@ -179,6 +191,11 @@ function GuestWorkspace() {
     }
   }
 
+  function handleSubmit(e) {
+    e.preventDefault();
+    askQuestion(query);
+  }
+
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -196,6 +213,20 @@ function GuestWorkspace() {
             {" "}{GUEST_QUESTION_LIMIT} questions per visit — create an account
             for full access.
           </p>
+
+          <div className="guest-suggestions">
+            {EXAMPLE_QUESTIONS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                className="guest-suggestion-chip"
+                onClick={() => askQuestion(q)}
+                disabled={isAsking || reachedLimit}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
