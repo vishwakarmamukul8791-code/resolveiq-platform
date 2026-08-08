@@ -39,6 +39,7 @@ The Render Free backend can take up to a minute to wake after inactivity.
 - Returns source document, page, and location citations.
 - Tracks investigation threads, sessions, confidence distribution, and knowledge gaps.
 - Gives admins document, engineer, analytics, and health controls.
+- Offers an optional no-login "guest" mode (`/try`) restricted to an explicit allow-list of public demo documents, for evaluators trying the product without an account.
 
 ## RAG pipeline
 
@@ -217,6 +218,8 @@ The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://
 | `ENABLE_CROSS_ENCODER` | No | Disable on memory-constrained instances |
 | `QUERY_REWRITE_ENABLED` | No | Enables an optional Gemini rewrite call |
 | `ENABLE_DEBUG_ROUTES` | No | Development-only admin retrieval diagnostics |
+| `GUEST_MODE_ENABLED` | No | Enables the unauthenticated `POST /guest/ask` demo endpoint; off by default |
+| `GUEST_ALLOWED_DOCUMENTS` | Guest mode | Comma-separated document names guest questions are restricted to; required whenever guest mode is on |
 | `MAX_UPLOAD_SIZE_MB` | No | Maximum PDF/CSV/TXT upload size; defaults to 10 |
 | `BOOTSTRAP_ADMIN_USERNAME` | Deployment | Idempotent first-admin bootstrap username |
 | `BOOTSTRAP_ADMIN_PASSWORD` | Deployment | First-admin bootstrap password; keep secret |
@@ -288,6 +291,7 @@ python -m backend.eval.run_eval
 | POST | `/auth/reset-password` | Authenticated |
 | GET | `/auth/me` | Authenticated |
 | POST | `/ask` | Authenticated, password reset complete |
+| POST | `/guest/ask` | Public, only when `GUEST_MODE_ENABLED=true`; restricted to `GUEST_ALLOWED_DOCUMENTS` |
 | GET | `/documents` | Authenticated, password reset complete |
 | GET | `/document/{filename}` | Authenticated, password reset complete |
 | GET/PATCH/DELETE | `/history...` | Authenticated, ownership scoped |
