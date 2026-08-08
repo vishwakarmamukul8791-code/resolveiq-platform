@@ -1,4 +1,5 @@
 import Landing from './pages/Landing';
+import Try from './pages/Try';
 import SupportDashboard from './pages/SupportDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
@@ -9,6 +10,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/try" element={<Try />} />
       <Route
         path="/support"
         element={

@@ -211,6 +211,21 @@ export const authApi = {
 };
 
 // ── Core RAG ─────────────────────────────────────────────────────────────
+// ── Guest (no login) ────────────────────────────────────────────────────
+export const guestApi = {
+  // Same shape as askApi.ask, but no auth header is attached (auth: false),
+  // and there's no conversationId/history concept — each guest question is
+  // independent. Backend enforces its own, much stricter per-IP rate limit.
+  ask(query, { timeoutMs = 60000 } = {}) {
+    return request("/guest/ask", {
+      method: "POST",
+      json: { query },
+      auth: false,
+      timeoutMs,
+    });
+  },
+};
+
 export const askApi = {
   // /ask performs retrieval, reranking, and one bounded
   // Gemini call. The client timeout is intentionally

@@ -1,7 +1,7 @@
 // frontend/src/components/LoginPanel.jsx
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../api/client";
 import "../styles/login-panel.css";
@@ -201,6 +201,10 @@ function LoginPanel() {
 
       <div className="login-footer">
         Account access is managed by your administrator.
+      </div>
+
+      <div className="login-footer">
+        Just evaluating the project? <Link to="/try">Try it without logging in</Link>
       </div>
     </section>
   );

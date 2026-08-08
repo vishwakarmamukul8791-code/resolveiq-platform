@@ -81,3 +81,19 @@ def rate_limit_ask(username: str):
         limit=20,
         window_seconds=60,
     )
+
+
+def rate_limit_guest_ask(request: Request):
+    """
+    Per-IP limit on POST /guest/ask. Much stricter than the logged-in
+    /ask limit, and keyed by IP rather than any account, since this
+    endpoint has no login at all — anyone on the internet can call it.
+    A generous-enough allowance for someone genuinely trying the demo,
+    tight enough to bound Gemini API cost from automated abuse.
+    """
+
+    _enforce(
+        f"guest_ask:{_client_ip(request)}",
+        limit=5,
+        window_seconds=600,
+    )
