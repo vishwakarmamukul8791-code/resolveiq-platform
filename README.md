@@ -203,9 +203,10 @@ The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://
 | Variable | Required | Purpose |
 |---|---:|---|
 | `GEMINI_API_KEY` | Yes | Gemini answer generation and Gemini embeddings |
-| `JWT_SECRET_KEY` | Yes | JWT signing and verification |
+| `JWT_SECRET_KEY` | Yes | JWT signing and verification; must be a random value at least 32 characters long — short or common placeholder values are rejected at startup |
 | `ENVIRONMENT` | No | Use `production` to disable API docs and local CORS origins |
 | `FRONTEND_ORIGIN` | Production | Comma-separated allowed frontend origins |
+| `TRUSTED_PROXY_COUNT` | No | Number of trusted reverse proxies in front of the API (e.g. Render's edge); defaults to `1`. Used to pick the correct client IP out of `X-Forwarded-For` for rate limiting instead of trusting a client-supplied value |
 | `PERSISTENCE_BACKEND` | No | `local` for development or `supabase` for durable production state |
 | `DATA_DIR` | Local only | Local runtime directory; defaults to repository `data/` |
 | `SUPABASE_DATABASE_URL` | Supabase | Server-only PostgreSQL Session pooler URL |
