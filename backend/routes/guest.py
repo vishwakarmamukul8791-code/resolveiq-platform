@@ -15,6 +15,7 @@ from backend.services.llm_service import (
 )
 from backend.services.logging_service import log_error, log_info
 from backend.services.query_rewrite_service import rewrite_query
+from backend.services.question_validation import validate_single_question
 from backend.services.rate_limit_service import rate_limit_guest_ask
 from backend.services.rerank_service import rerank
 from backend.services.retrieval_contract import build_retrieval_response
@@ -105,34 +106,27 @@ def guest_ask_question(payload: GuestAskRequest, request: Request):
 
     rate_limit_guest_ask(request)
 
-    query = payload.query.strip()
-
-    if not query:
-        raise HTTPException(
-            status_code=422,
-            detail="Question cannot be empty.",
-        )
+    query = validate_single_question(payload.query)
 
     log_info(f"/guest/ask — ip={request.client.host if request.client else 'unknown'}")
 
     try:
         search_query = rewrite_query(query)
 
+        # The allow-list is pushed into the retrieval query itself
+        # (document_names=...) rather than filtered out of the results
+        # afterwards. Filtering after the fact meant the top-10 pool
+        # was chosen from the *entire* knowledge base first — if none
+        # of an allowed document's chunks happened to rank in that
+        # unfiltered top-10, a guest got "no relevant information"
+        # even when the allowed document genuinely had a good answer.
+        # Scoping the query itself means the top-10 pool is always
+        # drawn only from documents the guest is allowed to see (P3-01).
         candidates = hybrid_search(
             search_query,
             top_k=10,
-            document_name=None,
+            document_names=allowed_documents,
         )
-
-        # Post-filter to the allow-list. Retrieval itself stays
-        # unrestricted (simpler, no changes needed to the retrieval
-        # services) — visibility is enforced here instead, before
-        # anything reaches reranking, confidence scoring, or the LLM.
-        candidates = [
-            candidate
-            for candidate in candidates
-            if candidate.get("document_name") in allowed_documents
-        ]
 
         reranked = rerank(search_query, candidates, top_k=5)
 
@@ -180,7 +174,24 @@ def guest_ask_question(payload: GuestAskRequest, request: Request):
 
     except LLMServiceError as exc:
         log_error(f"Guest ask LLM error: {exc.category}")
-        raise _build_llm_http_exception(exc)
+        raise _build_llm_http_exception(exc) from exc
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        # Previously only LLMServiceError was caught here — any other
+        # unexpected failure (retrieval, reranking, confidence scoring)
+        # fell through uncaught to FastAPI's default handler, which
+        # skips this project's structured logging and, depending on
+        # debug settings, can leak an internal traceback to the caller
+        # (P3-03). Mirrors the equivalent broad catch in ask.py.
+        log_error(f"/guest/ask failed — type={type(exc).__name__}")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate answer.",
+        ) from exc
 
     return AskResponse(
         question=query,

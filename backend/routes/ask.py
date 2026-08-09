@@ -1,4 +1,3 @@
-import re
 import uuid
 from datetime import datetime, timezone
 from typing import Literal, Optional
@@ -11,22 +10,29 @@ from backend.services.confidence_service import (
     calculate_confidence,
     filter_relevant_chunks
 )
-from backend.services.history_service import append_history
+from backend.services.database_service import multi_lock_transaction
+from backend.services.history_service import HISTORY_PATH, append_history
 from backend.services.hybrid_retrieval_service import hybrid_search
+from backend.services.json_storage import _collection_namespace
 from backend.services.llm_service import (
     LLMServiceError,
     generate_answer,
     is_no_information_answer,
 )
 from backend.services.logging_service import log_error, log_info
+from backend.services.persistence_config import is_supabase_backend
 from backend.services.query_rewrite_service import rewrite_query
+from backend.services.question_validation import (
+    MULTI_QUESTION_MESSAGE,
+    validate_single_question,
+)
 from backend.services.rate_limit_service import rate_limit_ask
 from backend.services.rerank_service import rerank
 from backend.services.retrieval_contract import (
     build_retrieval_response
 )
 from backend.services.retrieval_service import get_context
-from backend.services.session_service import record_question
+from backend.services.session_service import SESSIONS_PATH, record_question
 
 
 router = APIRouter()
@@ -34,10 +40,6 @@ router = APIRouter()
 NO_MATCH_MESSAGE = (
     "I couldn't find relevant information in the knowledge base "
     "to answer this question confidently."
-)
-
-MULTI_QUESTION_MESSAGE = (
-    "Please ask one incident question at a time."
 )
 
 LLM_ERROR_RESPONSES = {
@@ -141,21 +143,7 @@ def _build_sources(relevant_chunks):
 
 
 def _normalize_request(payload: AskRequest):
-    query = payload.query.strip()
-
-    if not query:
-        raise HTTPException(
-            status_code=422,
-            detail="Question cannot be empty."
-        )
-
-    normalized_question_marks = re.sub(r"\?+", "?", query)
-
-    if normalized_question_marks.count("?") > 1:
-        raise HTTPException(
-            status_code=422,
-            detail=MULTI_QUESTION_MESSAGE,
-        )
+    query = validate_single_question(payload.query)
 
     document_name = payload.document_name
 
@@ -313,12 +301,6 @@ def ask_question(
                     relevant_chunks
                 )
 
-        record_question(
-            x_session_id,
-            confidence_info["confidence"],
-            username,
-        )
-
         history_entry = {
             "id": str(uuid.uuid4()),
             "conversation_id": conversation_id,
@@ -338,7 +320,29 @@ def ask_question(
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        append_history(history_entry)
+        if is_supabase_backend():
+            # Both writes succeed or fail together — previously these
+            # were two independent transactions, so a failure between
+            # them (e.g. a dropped pool connection) could increment a
+            # session's question count with no matching history entry,
+            # or vice versa (P2-08).
+            with multi_lock_transaction([
+                _collection_namespace(SESSIONS_PATH),
+                _collection_namespace(HISTORY_PATH),
+            ]):
+                record_question(
+                    x_session_id,
+                    confidence_info["confidence"],
+                    username,
+                )
+                append_history(history_entry)
+        else:
+            record_question(
+                x_session_id,
+                confidence_info["confidence"],
+                username,
+            )
+            append_history(history_entry)
 
         log_info(
             f"Request completed — user={username} "

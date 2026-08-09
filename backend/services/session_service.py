@@ -90,6 +90,28 @@ def create_session(username: str) -> str:
     return session_id
 
 
+def is_session_active(session_id: str, username: str) -> bool:
+    """
+    Called by auth_service.get_current_user on every authenticated
+    request (when the presented JWT carries a "sid" claim) to check
+    whether POST /auth/logout has already closed this session.
+
+    A session that can't be found at all (e.g. data reset, or a token
+    from before this check existed) is treated as active rather than
+    rejected outright, so we fail open on missing records but still
+    fail closed the moment an explicit logout is recorded — logout is
+    the only thing that can flip this to False.
+    """
+
+    sessions = _load_sessions()
+
+    for session in sessions:
+        if session["session_id"] == session_id and session["username"] == username:
+            return session.get("logout_time") is None
+
+    return True
+
+
 @synchronized_storage(SESSIONS_PATH)
 def close_session(session_id: str, username: str) -> bool:
     """

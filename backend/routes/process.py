@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.config import CHUNK_OVERLAP, CHUNK_SIZE
 from backend.services.auth_service import require_admin
+from backend.services.bm25_service import invalidate_cache as invalidate_bm25_cache
 from backend.services.cleaning_service import clean_text
 from backend.services.document_registry import load_registry, save_registry
 from backend.services.embedding_service import generate_embeddings
@@ -185,14 +186,6 @@ def _process_materialized_document(file_path, safe_filename, current_user):
         for chunk in chunks
     ]
 
-    proposed_registry = [
-        *original_registry,
-        {
-            "document_name": safe_filename,
-            "hash": file_hash
-        }
-    ]
-
     chunk_texts = [chunk["chunk"] for chunk in chunks]
     embeddings = generate_embeddings(chunk_texts)
 
@@ -201,7 +194,7 @@ def _process_materialized_document(file_path, safe_filename, current_user):
             safe_filename,
             new_records,
             embeddings,
-            proposed_registry,
+            file_hash,
         )
 
         log_info(
@@ -216,6 +209,14 @@ def _process_materialized_document(file_path, safe_filename, current_user):
             "metadata_records": total_vectors,
             "total_vectors": total_vectors,
         }
+
+    proposed_registry = [
+        *original_registry,
+        {
+            "document_name": safe_filename,
+            "hash": file_hash
+        }
+    ]
 
     original_metadata = load_metadata()
     original_index = _load_consistent_existing_index(original_metadata)
@@ -266,6 +267,8 @@ def _process_materialized_document(file_path, safe_filename, current_user):
             status_code=500,
             detail="Unable to save processed document."
         ) from commit_exc
+
+    invalidate_bm25_cache()
 
     log_info(
         f"Document processed successfully: {safe_filename} "

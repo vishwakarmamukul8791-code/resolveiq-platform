@@ -36,6 +36,7 @@ def login(
             form_data.username,
             user["role"],
             user.get("token_version", 0),
+            session_id=session_id,
         )
 
         log_info(f"Login: {form_data.username} role={user['role']} session={session_id[:8]}")

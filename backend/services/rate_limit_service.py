@@ -13,6 +13,7 @@ instances agree on counts — a single process's in-memory dict only
 protects that one process.
 """
 
+import os
 import time
 from collections import defaultdict
 from threading import Lock
@@ -22,12 +23,26 @@ from fastapi import HTTPException, Request
 _lock = Lock()
 _buckets = defaultdict(list)  # key -> sorted list of request timestamps
 
+# Number of reverse proxies sitting in front of this app that we trust to
+# append (not let a client forge) an X-Forwarded-For entry (e.g. Render's
+# edge = 1). X-Forwarded-For is "client, proxy1, proxy2, ...": a client can
+# freely set the *first* value themselves, but cannot control the values
+# appended by hops closer to us. With N trusted proxies, the value we
+# actually trust is the Nth-from-the-right entry. Configure via env var if
+# the deployment topology changes; defaults to 1 (single edge proxy, the
+# common case on Render/Vercel-style hosting).
+TRUSTED_PROXY_COUNT = max(0, int(os.getenv("TRUSTED_PROXY_COUNT", "1")))
+
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    if TRUSTED_PROXY_COUNT > 0:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            hops = [part.strip() for part in forwarded.split(",") if part.strip()]
+            if len(hops) >= TRUSTED_PROXY_COUNT:
+                # The Nth value from the right was appended by our own
+                # trusted proxy chain, not supplied by the client.
+                return hops[-TRUSTED_PROXY_COUNT]
 
     return request.client.host if request.client else "unknown"
 
@@ -53,6 +68,22 @@ def _enforce(key: str, limit: int, window_seconds: int):
             )
 
         bucket.append(now)
+
+        # Bound the dict's growth: once a key's bucket empties out again
+        # (checked lazily on its next hit) it would otherwise sit around
+        # forever. We can't proactively sweep every key on every call
+        # without an extra background thread, but we can at least avoid
+        # keeping obviously-stale single-hit buckets from a one-off caller
+        # by trimming any *other* bucket that has gone fully idle past its
+        # own window while we're already holding the lock.
+        if len(_buckets) > 5000:
+            stale_keys = [
+                other_key
+                for other_key, other_bucket in _buckets.items()
+                if not other_bucket or other_bucket[-1] < cutoff
+            ]
+            for other_key in stale_keys:
+                del _buckets[other_key]
 
 
 def rate_limit_login(request: Request):

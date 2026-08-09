@@ -146,20 +146,21 @@ def _get_supabase_health_status():
         else "Missing"
     )
 
-    metadata = None
-
     if database_ready:
         try:
-            metadata = load_metadata()
-            vector_count = count_chunks()
+            # A lightweight count(*) confirms the chunks table is
+            # reachable and readable without transferring every chunk's
+            # text over the network. Embeddings live in the same row as
+            # their chunk metadata in Supabase mode (unlike local FAISS
+            # mode, where a genuinely separate index file can drift out
+            # of sync with metadata.json), so there's no independent
+            # "vector count" to compare this against — the two can't
+            # drift apart, they're the same table.
+            count_chunks()
             load_registry()
             health["vector_store"] = "Loaded"
             health["registry"] = "Loaded"
-            health["index_consistency"] = (
-                "In sync"
-                if vector_count == len(metadata)
-                else "Out of sync"
-            )
+            health["index_consistency"] = "In sync"
         except Exception as exc:
             log_error(
                 "Supabase persistence health check failed: "

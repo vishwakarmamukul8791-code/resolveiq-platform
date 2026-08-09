@@ -16,6 +16,7 @@ from backend.services.json_storage import (
     synchronized_storage,
 )
 from backend.services.storage_paths import data_path
+from backend.services.session_service import is_session_active
 
 USERS_PATH = data_path("users.json")
 
@@ -41,6 +42,23 @@ USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
+MIN_JWT_SECRET_LENGTH = 32
+
+_WEAK_JWT_SECRETS = {
+    "secret",
+    "changeme",
+    "change_me",
+    "your-secret-key",
+    "your_secret_key",
+    "password",
+    "jwt_secret",
+    "jwt_secret_key",
+    "test",
+    "testing",
+    "development",
+}
+
+
 def _get_jwt_secret() -> str:
 
     secret = os.getenv("JWT_SECRET_KEY")
@@ -49,6 +67,17 @@ def _get_jwt_secret() -> str:
         raise RuntimeError(
             "JWT_SECRET_KEY is not set in .env. Auth cannot issue or "
             "verify tokens without it."
+        )
+
+    if (
+        len(secret) < MIN_JWT_SECRET_LENGTH
+        or secret.strip().lower() in _WEAK_JWT_SECRETS
+    ):
+        raise RuntimeError(
+            "JWT_SECRET_KEY is too weak. Use a random value at least "
+            f"{MIN_JWT_SECRET_LENGTH} characters long (e.g. "
+            "`python -c \"import secrets; print(secrets.token_urlsafe(48))\"`) "
+            "— a short or guessable secret lets anyone forge valid tokens."
         )
 
     return secret
@@ -519,7 +548,12 @@ def admin_reset_password(target_username: str):
 # JWT
 # ─────────────────────────────────────────────
 
-def create_access_token(username: str, role: str, token_version: int = 0) -> str:
+def create_access_token(
+    username: str,
+    role: str,
+    token_version: int = 0,
+    session_id: str = None,
+) -> str:
     """
     Issue a signed access token. Protected requests also reload the current
     user record, so deactivation, role, and forced-reset changes take effect
@@ -530,6 +564,15 @@ def create_access_token(username: str, role: str, token_version: int = 0) -> str
     request (see get_current_user). Password changes bump the stored
     value, so tokens issued before a password change are rejected right
     away instead of remaining valid until their 12h expiry.
+
+    session_id, when provided, is stamped in as the "sid" claim. On every
+    authenticated request get_current_user checks whether that session has
+    been closed (POST /auth/logout) and rejects the token immediately if
+    so — without this, logout only annotated the analytics session record
+    and the JWT itself stayed valid for the rest of its 12h lifetime.
+    Tokens issued without a session_id (e.g. the replacement token from
+    POST /auth/reset-password) skip this check and rely on token_version
+    alone, same as before.
     """
 
     expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
@@ -538,8 +581,11 @@ def create_access_token(username: str, role: str, token_version: int = 0) -> str
         "sub": username,
         "role": role,
         "tv": token_version,
-        "exp": expire
+        "exp": expire,
     }
+
+    if session_id:
+        payload["sid"] = session_id
 
     return jwt.encode(payload, _get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
@@ -560,6 +606,7 @@ def decode_access_token(token: str):
         username = payload.get("sub")
         role = payload.get("role")
         token_version = payload.get("tv", 0)
+        session_id = payload.get("sid")
 
         if (
             not isinstance(username, str)
@@ -573,6 +620,7 @@ def decode_access_token(token: str):
             "username": username,
             "role": role,
             "token_version": token_version,
+            "session_id": session_id if isinstance(session_id, str) else None,
         }
 
     except jwt.ExpiredSignatureError:
@@ -614,6 +662,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         raise HTTPException(
             status_code=401,
             detail="This session was signed out by a password change.",
+        )
+
+    session_id = payload.get("session_id")
+
+    if session_id and not is_session_active(session_id, user["username"]):
+        raise HTTPException(
+            status_code=401,
+            detail="This session was signed out. Please log in again.",
         )
 
     return {

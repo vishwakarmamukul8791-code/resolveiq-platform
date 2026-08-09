@@ -23,21 +23,24 @@ def _search_index(index, query_embedding, top_k):
     ]
 
 
-def _search_document_scope(
+def _search_scoped(
     index,
     query_embedding,
     metadata,
-    document_name,
+    allowed_names,
     top_k
 ):
     """
-    Restrict vectors to the selected document before calculating top-k.
-    Local FAISS positions are mapped back to global metadata positions.
+    Restrict vectors to the allowed document name(s) before calculating
+    top-k. Local FAISS positions are mapped back to global metadata
+    positions. allowed_names is a set — this covers both the
+    single-document scope (ask.py's document_name filter) and a
+    multi-document allow-list (guest.py) with the same code path.
     """
     global_metadata_indices = [
         index_position
         for index_position, record in enumerate(metadata)
-        if record["document_name"] == document_name
+        if record["document_name"] in allowed_names
     ]
 
     if not global_metadata_indices:
@@ -81,12 +84,18 @@ def _search_document_scope(
 def search_similar_chunks(
     query,
     document_name=None,
+    document_names=None,
     top_k=None
 ):
     if top_k is None:
         top_k = TOP_K
 
     if top_k <= 0:
+        return [], []
+
+    if document_names is not None and not document_names:
+        # An explicit empty allow-list means nothing is visible —
+        # short-circuit rather than run an unscoped search.
         return [], []
 
     if is_supabase_backend():
@@ -101,6 +110,7 @@ def search_similar_chunks(
             query_embedding,
             top_k=top_k,
             document_name=document_name,
+            document_names=document_names,
         )
 
     metadata = load_metadata()
@@ -108,14 +118,21 @@ def search_similar_chunks(
     if not metadata:
         return [], []
 
-    # Avoid embedding generation for a nonexistent document scope.
-    if document_name is not None:
-        document_exists = any(
-            record["document_name"] == document_name
+    allowed_names = None
+
+    if document_names is not None:
+        allowed_names = set(document_names)
+    elif document_name is not None:
+        allowed_names = {document_name}
+
+    # Avoid embedding generation for a nonexistent/empty document scope.
+    if allowed_names is not None:
+        scope_has_matches = any(
+            record["document_name"] in allowed_names
             for record in metadata
         )
 
-        if not document_exists:
+        if not scope_has_matches:
             return [], []
 
     index = load_faiss_index()
@@ -146,18 +163,18 @@ def search_similar_chunks(
             "Query embedding dimension does not match FAISS index."
         )
 
-    if document_name is None:
+    if allowed_names is None:
         matches = _search_index(
             index,
             query_embedding,
             top_k
         )
     else:
-        matches = _search_document_scope(
+        matches = _search_scoped(
             index,
             query_embedding,
             metadata,
-            document_name,
+            allowed_names,
             top_k
         )
 

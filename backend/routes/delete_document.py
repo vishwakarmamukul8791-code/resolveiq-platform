@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from backend.services.auth_service import require_admin
+from backend.services.bm25_service import invalidate_cache as invalidate_bm25_cache
 from backend.services.document_registry import load_registry, save_registry
 from backend.services.faiss_service import (
     delete_faiss_index,
@@ -153,10 +154,7 @@ def delete_document(
         )
 
         if is_supabase_backend():
-            removed_chunks = delete_document_data(
-                safe_filename,
-                proposed_registry,
-            )
+            removed_chunks = delete_document_data(safe_filename)
 
             object_deleted = False
 
@@ -238,6 +236,8 @@ def delete_document(
                 status_code=500,
                 detail="Unable to delete document."
             ) from commit_exc
+
+        invalidate_bm25_cache()
 
         log_info(
             f"Document deleted: {safe_filename} "

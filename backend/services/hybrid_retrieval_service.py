@@ -31,18 +31,26 @@ def reciprocal_rank_fusion(semantic_results, bm25_results, top_k=5):
     return fused[:top_k]
 
 
-def hybrid_search(query, top_k=5, candidate_pool_size=10, document_name=None):
+def hybrid_search(
+    query,
+    top_k=5,
+    candidate_pool_size=10,
+    document_name=None,
+    document_names=None,
+):
 
     semantic_results, _ = search_similar_chunks(
         query,
         document_name=document_name,
+        document_names=document_names,
         top_k=candidate_pool_size
     )
 
     bm25_results = search_bm25(
         query,
         top_k=candidate_pool_size,
-        document_name=document_name
+        document_name=document_name,
+        document_names=document_names,
     )
 
     return reciprocal_rank_fusion(semantic_results, bm25_results, top_k=top_k)

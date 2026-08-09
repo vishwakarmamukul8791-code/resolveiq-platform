@@ -92,6 +92,15 @@ def database_transaction(lock_key: str | None = None):
     The optional advisory lock serializes a logical collection across all
     API instances. Nested service calls reuse the same connection so a
     read-modify-write sequence stays inside the same transaction.
+
+    Note: if code nests two of these calls with *different* lock_keys
+    (rather than calling multi_lock_transaction below), only the
+    outermost lock is actually taken — the inner call sees
+    _active_connection already set and returns before reaching its own
+    pg_advisory_xact_lock call. That's intentional for the common case
+    (nested calls inside the *same* logical collection, which don't need
+    a second lock on themselves) but means naively nesting two unrelated
+    single-lock_key calls together does not give you both locks.
     """
 
     active = _active_connection.get()
@@ -103,6 +112,51 @@ def database_transaction(lock_key: str | None = None):
     with get_database_pool().connection(timeout=10) as connection:
         with connection.transaction():
             if lock_key:
+                connection.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                    (lock_key,),
+                )
+
+            token = _active_connection.set(connection)
+
+            try:
+                yield connection
+            finally:
+                _active_connection.reset(token)
+
+
+@contextmanager
+def multi_lock_transaction(lock_keys: list):
+    """
+    Like database_transaction, but acquires an advisory lock for every
+    key in lock_keys up front, in a fixed (sorted) order to avoid
+    deadlocking against another caller locking the same set in a
+    different order. Everything inside the `with` block — including
+    calls into functions that individually call database_transaction()
+    or collection_transaction() for any of these same namespaces — runs
+    in one transaction and reuses this connection.
+
+    Use this when two otherwise-independent writes (each normally
+    protected by its own single-namespace lock) need to succeed or fail
+    together as one atomic unit — e.g. ask.py recording a question in
+    sessions.json and appending the matching entry to history.json.
+    Without this, those two writes were separate transactions: if the
+    first succeeded and the second then failed (a dropped connection,
+    a pool timeout), the session's question count would be
+    incremented with no matching history entry, and a client retry
+    could double-count the question with no way to tell it apart from
+    a genuinely new one (P2-08).
+    """
+
+    active = _active_connection.get()
+
+    if active is not None:
+        yield active
+        return
+
+    with get_database_pool().connection(timeout=10) as connection:
+        with connection.transaction():
+            for lock_key in sorted(set(lock_keys)):
                 connection.execute(
                     "SELECT pg_advisory_xact_lock(hashtext(%s))",
                     (lock_key,),
