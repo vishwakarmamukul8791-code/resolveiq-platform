@@ -210,8 +210,8 @@ function GuestWorkspace() {
           <h1>Try ResolveIQ — no login needed</h1>
           <p>
             Ask a question against a public demo knowledge base. Limited to
-            {" "}{GUEST_QUESTION_LIMIT} questions per visit — create an account
-            for full access.
+            {" "}{GUEST_QUESTION_LIMIT} questions per visit — log in for full
+            access, or run your own instance to try everything.
           </p>
 
           <div className="guest-suggestions">
@@ -245,7 +245,8 @@ function GuestWorkspace() {
         {reachedLimit && (
           <div className="composer-error">
             You've reached the guest question limit for this visit. Log in
-            (or create an account) to keep going.
+            if you have credentials, or run your own instance to keep
+            exploring.
           </div>
         )}
 

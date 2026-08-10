@@ -12,7 +12,40 @@ ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for inve
 
 The Render Free backend can take up to a minute to wake after inactivity.
 
-> The hosted application uses restricted accounts. For local evaluation, follow the setup instructions to create your own admin account; no credentials are committed to the repository.
+### 👀 Evaluating this for a role? Read this first.
+
+The live demo above is **intentionally guest-only** — click "Try it without
+logging in" and ask questions against a small set of public sample
+documents. There's no way to log into the hosted instance itself: I don't
+publish admin credentials to a public URL, since anyone could then delete
+documents, spam the upload pipeline (real API cost), or reset other
+accounts — the same reasons any real production app doesn't hand out
+admin access on request.
+
+**To see the full application — admin dashboard, document upload/delete,
+engineer accounts, analytics, RAG insights, system health — it takes
+about 5 minutes:**
+
+```bash
+git clone https://github.com/vishwakarmamukul8791-code/resolveiq-platform.git
+cd resolveiq-platform
+# follow "Local development" below, then:
+python -m backend.seed_admin
+```
+
+That last command creates your own admin account on your own local
+instance (own storage, own data — nothing shared with the live demo or
+anyone else who clones this). Log in and you'll have an empty knowledge
+base — upload the sample runbooks included in
+[`demo-documents/`](demo-documents/) to try the full retrieval → confidence
+→ generation pipeline in a couple of minutes, or upload your own files.
+See [Local setup — Windows PowerShell](#local-setup--windows-powershell) below for the full setup.
+
+Once uploaded, try asking:
+- "Why does OAuth token exchange fail?"
+- "What causes redirect_uri_mismatch errors?"
+- "How do I fix database connection pool exhaustion?"
+- "What's the immediate mitigation for a connection pool exhaustion incident?"
 
 ## Product screenshots
 
@@ -27,6 +60,16 @@ The Render Free backend can take up to a minute to wake after inactivity.
 ### Administrative system health
 
 ![ResolveIQ admin system health dashboard](docs/screenshots/resolveiq-system-health.png)
+
+<!--
+  Optional: record a 30-60s screen capture (upload -> ask a question ->
+  admin dashboard) and drop it in as either:
+    1. A GIF committed to docs/screenshots/resolveiq-demo.gif, then:
+       ![ResolveIQ walkthrough](docs/screenshots/resolveiq-demo.gif)
+    2. A Loom / YouTube link, then uncomment the line below and replace the URL:
+       [Watch a 60-second walkthrough](https://your-video-link-here)
+  This lets someone see the full admin flow without cloning anything.
+-->
 
 ## What ResolveIQ does
 

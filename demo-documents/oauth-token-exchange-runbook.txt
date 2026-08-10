@@ -1,0 +1,32 @@
+OAuth Token Exchange Failure Runbook
+
+Overview
+This runbook covers the three most common causes of OAuth token exchange
+failures reported by the identity gateway in production.
+
+1. Clock Drift / Failed NTP Synchronization
+If the authentication server's system clock drifts from the reference
+time source by more than five minutes, issued token timestamps become
+invalid on validation, and the identity provider returns invalid_grant.
+Fix: verify NTP sync status with `timedatectl status` on the auth host
+and restart the chrony/ntpd service if drift exceeds 300 seconds.
+
+2. Redirect URI Mismatches
+The identity gateway logs report redirect_uri_mismatch when the
+redirect_uri parameter sent during the authorization code exchange does
+not exactly match one of the URIs registered for that OAuth client
+(including trailing slashes and http vs https). Fix: compare the
+failing request's redirect_uri against the client's registered URI list
+in the identity provider's admin console.
+
+3. Client Authentication Failures
+The identity gateway logs report client authentication failed when the
+client_secret sent during token exchange does not match the secret on
+file, most commonly after a credential rotation that was not propagated
+to every service instance. Fix: confirm every instance of the calling
+service picked up the rotated secret from its config store; a partial
+rollout is the most common root cause.
+
+Escalation
+If none of the above resolve the issue within 30 minutes, escalate to
+the identity platform on-call via the #identity-oncall channel.

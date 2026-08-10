@@ -1,7 +1,3 @@
-// frontend/src/pages/Try.jsx
-//
-// Public, no-login page for people evaluating the product without a
-// shared demo account — e.g. linked directly from a LinkedIn post.
 
 import { Link } from "react-router";
 import Navbar from "../components/Navbar";
@@ -17,8 +13,17 @@ function Try() {
         <GuestWorkspace />
 
         <p className="try-page-footer">
-          Want full access, saved history, and admin tools?{" "}
-          <Link to="/">Log in or create an account</Link>
+          Have admin credentials? <Link to="/">Log in</Link>.{" "}
+          Want to explore the full app — admin dashboard, document
+          upload, analytics — yourself? There's no public sign-up, but
+          you can run your own instance in a few minutes:{" "}
+          <a
+            href="https://github.com/vishwakarmamukul8791-code/resolveiq-platform#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            see the README
+          </a>.
         </p>
       </div>
     </>

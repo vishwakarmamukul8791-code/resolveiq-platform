@@ -1,0 +1,33 @@
+Database Connection Pool Exhaustion Runbook
+
+Overview
+This runbook covers diagnosing and resolving "connection pool exhausted"
+errors reported by backend services connecting to the primary database.
+
+Symptoms
+Requests begin failing with timeout errors, and application logs show
+"could not obtain connection from pool" or "pool exhausted" messages.
+Database-side connection count metrics typically show the pool at or
+near its configured maximum.
+
+Common Causes
+1. A long-running or stuck query is holding a connection open far
+   longer than expected, starving the pool for other requests. Check
+   `pg_stat_activity` for queries with a long `query_start` duration.
+2. A recent deployment introduced a connection leak — a code path that
+   opens a connection but does not release it back to the pool on an
+   error path. Check for recent deploys correlating with the onset of
+   the issue.
+3. Traffic has genuinely exceeded the pool's configured maximum size
+   for the current load. Compare current request volume against
+   historical baselines before assuming a leak.
+
+Immediate Mitigation
+Restarting the affected service instances releases any leaked
+connections immediately and is the fastest way to restore service while
+root-causing the underlying issue.
+
+Escalation
+If pool exhaustion recurs within an hour of a restart, escalate to the
+database platform on-call — this usually indicates a genuine leak
+rather than a transient traffic spike.
