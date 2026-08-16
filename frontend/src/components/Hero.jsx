@@ -5,7 +5,7 @@ function Hero() {
     <section className="hero-section">
 
       <div className="hero-eyebrow">
-        AI-POWERED INCIDENT OPERATIONS
+        INCIDENT OPERATIONS · HYBRID RAG
       </div>
 
       <h1>
