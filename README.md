@@ -1,4 +1,4 @@
-# ResolveIQ â€” AI-Powered Incident Resolution Platform
+# ResolveIQ — AI-Powered Incident Resolution Platform
 
 [![CI](https://github.com/vishwakarmamukul8791-code/resolveiq-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/vishwakarmamukul8791-code/resolveiq-platform/actions/workflows/ci.yml)
 
@@ -12,12 +12,12 @@ ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for inve
 
 The Render Free backend may need a short warm-up after inactivity. The landing page automatically starts the backend and shows its live status while it becomes ready.
 
-### ðŸ‘€ Evaluating this for a role? Read this first.
+### 👀 Evaluating this for a role? Read this first.
 
 The hosted application now includes a **no-login recruiter demo** with two safe views:
 
-- **Support Engineer Demo** â€” ask questions against the explicitly allow-listed public knowledge base using the real hybrid RAG pipeline, confidence gating, grounded generation, and citations.
-- **Read-only Admin Demo** â€” inspect sanitized public document metadata, retrieval configuration, evaluation metrics, system health, and the administrative capabilities that exist in the authenticated product.
+- **Support Engineer Demo** — ask questions against the explicitly allow-listed public knowledge base using the real hybrid RAG pipeline, confidence gating, grounded generation, and citations.
+- **Read-only Admin Demo** — inspect sanitized public document metadata, retrieval configuration, evaluation metrics, system health, and the administrative capabilities that exist in the authenticated product.
 
 The Support Demo also includes a small **temporary TXT sandbox**. A visitor can submit one TXT runbook and ask a question against it without creating persistent data. That sandbox is intentionally isolated from the real upload/process pipeline: the text is handled in memory, retrieved with bounded BM25Plus, rate-limited, and is not added to Storage, the document registry, FAISS/pgvector, or investigation history.
 
@@ -34,7 +34,7 @@ python -m backend.seed_admin
 
 That creates an admin account on your own local instance. Upload the sample runbooks in [`demo-documents/`](demo-documents/) or use your own PDF, CSV, and TXT documents.
 
-See [Local setup â€” Windows PowerShell](#local-setup--windows-powershell) for the full setup.
+See [Local setup — Windows PowerShell](#local-setup--windows-powershell) for the full setup.
 
 Once uploaded, try asking:
 - "Why does OAuth token exchange fail?"
@@ -168,7 +168,7 @@ data/vector_store/index.faiss     vector index
 data/vector_store/metadata.json   chunk metadata
 ```
 
-## Local setup â€” Windows PowerShell
+## Local setup — Windows PowerShell
 
 ### 1. Clone and create the backend environment
 
@@ -237,7 +237,7 @@ The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://
 | Variable | Required | Purpose |
 |---|---:|---|
 | `GEMINI_API_KEY` | Yes | Gemini answer generation and Gemini embeddings |
-| `JWT_SECRET_KEY` | Yes | JWT signing and verification; must be a random value at least 32 characters long â€” short or common placeholder values are rejected at startup |
+| `JWT_SECRET_KEY` | Yes | JWT signing and verification; must be a random value at least 32 characters long — short or common placeholder values are rejected at startup |
 | `ENVIRONMENT` | No | Use `production` to disable API docs and local CORS origins |
 | `FRONTEND_ORIGIN` | Production | Comma-separated allowed frontend origins |
 | `TRUSTED_PROXY_COUNT` | No | Number of trusted reverse proxies in front of the API (e.g. Render's edge); defaults to `1`. Used to pick the correct client IP out of `X-Forwarded-For` for rate limiting instead of trusting a client-supplied value |
@@ -364,7 +364,7 @@ python -m backend.eval.run_eval
 - Supabase Free may pause after extended inactivity and does not provide paid-tier uptime guarantees.
 - Local JSON/FAISS mode is for development and is not durable on Render Free.
 - Document processing is synchronous; large production workloads should use a background queue.
-- JWT access tokens do not use refresh tokens or a server-side blocklist of individually revoked tokens. Instead, each user carries a `token_version` counter, stamped into every token issued to them; a password change (self-service or admin-triggered) increments it, which invalidates every token issued before that change on their very next request â€” regardless of that token's remaining 12h lifetime. Active status and password-reset state are also checked on every protected request.
+- JWT access tokens do not use refresh tokens or a server-side blocklist of individually revoked tokens. Instead, each user carries a `token_version` counter, stamped into every token issued to them; a password change (self-service or admin-triggered) increments it, which invalidates every token issued before that change on their very next request — regardless of that token's remaining 12h lifetime. Active status and password-reset state are also checked on every protected request.
 - Retrieval thresholds should be recalibrated whenever the embedding model, corpus, or reranker changes.
 
 ## License
