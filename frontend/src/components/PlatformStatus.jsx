@@ -3,46 +3,64 @@ import { useEffect, useState } from "react";
 import { systemApi } from "../api/client";
 import "../styles/status.css";
 
+const WARMUP_RETRY_DELAY_MS = 5_000;
+const MAX_WARMUP_MS = 6 * 60 * 1_000;
 
 function PlatformStatus() {
   const [apiStatus, setApiStatus] = useState("checking");
-  // null while /stats hasn't resolved yet — the retrieval-pipeline line
-  // below falls back to the generic "Hybrid" label in that case rather
-  // than assuming reranking is on, since it previously claimed
-  // "Hybrid + reranked" unconditionally even when ENABLE_CROSS_ENCODER
-  // was off in production.
   const [rerankerEnabled, setRerankerEnabled] = useState(null);
 
   useEffect(() => {
     let active = true;
+    let retryTimer = null;
+    const warmupStartedAt = Date.now();
 
-    systemApi
-      .health()
-      .then(() => {
-        if (active) {
-          setApiStatus("online");
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setApiStatus("offline");
-        }
-      });
-
-    systemApi
-      .stats()
-      .then((data) => {
+    async function loadRuntimeStats() {
+      try {
+        const data = await systemApi.stats();
         if (active) {
           setRerankerEnabled(Boolean(data.reranker_enabled));
         }
-      })
-      .catch(() => {
-        // Non-critical — the label just falls back to the generic
-        // "Hybrid" wording below instead of overclaiming.
-      });
+      } catch {
+        // Non-critical. The retrieval label safely falls back to Hybrid (RRF).
+      }
+    }
+
+    async function checkBackend() {
+      try {
+        await systemApi.health();
+
+        if (!active) return;
+
+        setApiStatus("online");
+        loadRuntimeStats();
+      } catch {
+        if (!active) return;
+
+        const stillWithinWarmupWindow =
+          Date.now() - warmupStartedAt < MAX_WARMUP_MS;
+
+        if (stillWithinWarmupWindow) {
+          // Render Free can be asleep. Keep the page usable and retry instead
+          // of immediately presenting a transient cold start as an outage.
+          setApiStatus("waking");
+          retryTimer = window.setTimeout(
+            checkBackend,
+            WARMUP_RETRY_DELAY_MS
+          );
+        } else {
+          setApiStatus("offline");
+        }
+      }
+    }
+
+    checkBackend();
 
     return () => {
       active = false;
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
     };
   }, []);
 
@@ -51,6 +69,8 @@ function PlatformStatus() {
       ? "LIVE"
       : apiStatus === "offline"
       ? "OFFLINE"
+      : apiStatus === "waking"
+      ? "WAKING"
       : "CHECKING";
 
   const apiLabel =
@@ -58,6 +78,8 @@ function PlatformStatus() {
       ? "Online"
       : apiStatus === "offline"
       ? "Unavailable"
+      : apiStatus === "waking"
+      ? "Preparing backend…"
       : "Checking";
 
   return (
@@ -83,7 +105,9 @@ function PlatformStatus() {
         <div className="status-item">
           <i aria-hidden="true" />
           <span>Retrieval Pipeline</span>
-          <strong>{rerankerEnabled ? "Hybrid + reranked" : "Hybrid (RRF)"}</strong>
+          <strong>
+            {rerankerEnabled ? "Hybrid + reranked" : "Hybrid (RRF)"}
+          </strong>
         </div>
 
         <div className="status-item">

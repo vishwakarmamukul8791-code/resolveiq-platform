@@ -318,7 +318,7 @@ function AdminHealthTab() {
           </div>
 
           <div>
-            <span>Query rewrite</span>
+            <span>Configurable query rewrite</span>
 
             <strong>
               {stats.query_rewrite_enabled ? "Enabled" : "Disabled"}

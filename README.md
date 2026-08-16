@@ -1,4 +1,4 @@
-# ResolveIQ — AI-Powered Incident Resolution Platform
+# ResolveIQ â€” AI-Powered Incident Resolution Platform
 
 [![CI](https://github.com/vishwakarmamukul8791-code/resolveiq-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/vishwakarmamukul8791-code/resolveiq-platform/actions/workflows/ci.yml)
 
@@ -10,36 +10,31 @@ ResolveIQ is a full-stack Retrieval-Augmented Generation (RAG) platform for inve
 - Backend health: [resolveiq-api-8lmh.onrender.com/health](https://resolveiq-api-8lmh.onrender.com/health)
 - Repository: [GitHub](https://github.com/vishwakarmamukul8791-code/resolveiq-platform)
 
-The Render Free backend can take up to a minute to wake after inactivity.
+The Render Free backend may need a short warm-up after inactivity. The landing page automatically starts the backend and shows its live status while it becomes ready.
 
-### 👀 Evaluating this for a role? Read this first.
+### ðŸ‘€ Evaluating this for a role? Read this first.
 
-The live demo above is **intentionally guest-only** — click "Try it without
-logging in" and ask questions against a small set of public sample
-documents. There's no way to log into the hosted instance itself: I don't
-publish admin credentials to a public URL, since anyone could then delete
-documents, spam the upload pipeline (real API cost), or reset other
-accounts — the same reasons any real production app doesn't hand out
-admin access on request.
+The hosted application now includes a **no-login recruiter demo** with two safe views:
 
-**To see the full application — admin dashboard, document upload/delete,
-engineer accounts, analytics, RAG insights, system health — it takes
-about 5 minutes:**
+- **Support Engineer Demo** â€” ask questions against the explicitly allow-listed public knowledge base using the real hybrid RAG pipeline, confidence gating, grounded generation, and citations.
+- **Read-only Admin Demo** â€” inspect sanitized public document metadata, retrieval configuration, evaluation metrics, system health, and the administrative capabilities that exist in the authenticated product.
+
+The Support Demo also includes a small **temporary TXT sandbox**. A visitor can submit one TXT runbook and ask a question against it without creating persistent data. That sandbox is intentionally isolated from the real upload/process pipeline: the text is handled in memory, retrieved with bounded BM25Plus, rate-limited, and is not added to Storage, the document registry, FAISS/pgvector, or investigation history.
+
+Public evaluators are **not given administrator credentials**. Real upload/delete operations, engineer management, password resets, private documents, authenticated sessions, and other mutations remain behind the existing JWT + role-protected application.
+
+**To test the complete authenticated workflow with your own admin account and data:**
 
 ```bash
 git clone https://github.com/vishwakarmamukul8791-code/resolveiq-platform.git
 cd resolveiq-platform
-# follow "Local development" below, then:
+# follow "Local setup — Windows PowerShell" below, then:
 python -m backend.seed_admin
 ```
 
-That last command creates your own admin account on your own local
-instance (own storage, own data — nothing shared with the live demo or
-anyone else who clones this). Log in and you'll have an empty knowledge
-base — upload the sample runbooks included in
-[`demo-documents/`](demo-documents/) to try the full retrieval → confidence
-→ generation pipeline in a couple of minutes, or upload your own files.
-See [Local setup — Windows PowerShell](#local-setup--windows-powershell) below for the full setup.
+That creates an admin account on your own local instance. Upload the sample runbooks in [`demo-documents/`](demo-documents/) or use your own PDF, CSV, and TXT documents.
+
+See [Local setup â€” Windows PowerShell](#local-setup--windows-powershell) for the full setup.
 
 Once uploaded, try asking:
 - "Why does OAuth token exchange fail?"
@@ -49,27 +44,23 @@ Once uploaded, try asking:
 
 ## Product screenshots
 
-### Secure enterprise access
+### Live product demo
 
-![ResolveIQ enterprise sign-in](docs/screenshots/resolveiq-sign-in.png)
+![ResolveIQ live product demo](docs/screenshots/resolveiq-landing-demo.png)
 
 ### Source-grounded incident resolution
 
-![ResolveIQ high-confidence RAG answer](docs/screenshots/resolveiq-rag-answer.png)
+![ResolveIQ high-confidence RAG answer](docs/screenshots/resolveiq-support-rag.png)
 
-### Administrative system health
+### Authenticated admin system health
 
-![ResolveIQ admin system health dashboard](docs/screenshots/resolveiq-system-health.png)
+![ResolveIQ authenticated admin system health](docs/screenshots/resolveiq-admin-system-health.png)
 
-<!--
-  Optional: record a 30-60s screen capture (upload -> ask a question ->
-  admin dashboard) and drop it in as either:
-    1. A GIF committed to docs/screenshots/resolveiq-demo.gif, then:
-       ![ResolveIQ walkthrough](docs/screenshots/resolveiq-demo.gif)
-    2. A Loom / YouTube link, then uncomment the line below and replace the URL:
-       [Watch a 60-second walkthrough](https://your-video-link-here)
-  This lets someone see the full admin flow without cloning anything.
--->
+> The screenshot above shows the local authenticated admin environment using FAISS. Production uses Supabase PostgreSQL + pgvector.
+
+### Retrieval evaluation and RAG pipeline
+
+![ResolveIQ retrieval evaluation and RAG pipeline](docs/screenshots/resolveiq-rag-insights.png)
 
 ## What ResolveIQ does
 
@@ -82,7 +73,7 @@ Once uploaded, try asking:
 - Returns source document, page, and location citations.
 - Tracks investigation threads, sessions, confidence distribution, and knowledge gaps.
 - Gives admins document, engineer, analytics, and health controls.
-- Offers an optional no-login "guest" mode (`/try`) restricted to an explicit allow-list of public demo documents, for evaluators trying the product without an account.
+- Provides a no-login recruiter demo with allow-listed public RAG, a temporary in-memory TXT sandbox, and a sanitized read-only Admin preview while keeping real admin mutations protected.
 
 ## RAG pipeline
 
@@ -90,7 +81,7 @@ Once uploaded, try asking:
 Single incident question
         |
         v
-Optional query rewrite (safe fallback to original)
+Configurable query rewrite (safe fallback to original)
         |
         +-----------------------+
         |                       |
@@ -177,7 +168,7 @@ data/vector_store/index.faiss     vector index
 data/vector_store/metadata.json   chunk metadata
 ```
 
-## Local setup — Windows PowerShell
+## Local setup â€” Windows PowerShell
 
 ### 1. Clone and create the backend environment
 
@@ -219,7 +210,7 @@ MAX_UPLOAD_SIZE_MB=10
 
 ```powershell
 python -m backend.seed_admin
-uvicorn app:app --reload
+python -m uvicorn app:app --reload
 ```
 
 Local API endpoints:
@@ -246,7 +237,7 @@ The frontend runs at `http://localhost:5173` and uses `VITE_API_BASE_URL=http://
 | Variable | Required | Purpose |
 |---|---:|---|
 | `GEMINI_API_KEY` | Yes | Gemini answer generation and Gemini embeddings |
-| `JWT_SECRET_KEY` | Yes | JWT signing and verification; must be a random value at least 32 characters long — short or common placeholder values are rejected at startup |
+| `JWT_SECRET_KEY` | Yes | JWT signing and verification; must be a random value at least 32 characters long â€” short or common placeholder values are rejected at startup |
 | `ENVIRONMENT` | No | Use `production` to disable API docs and local CORS origins |
 | `FRONTEND_ORIGIN` | Production | Comma-separated allowed frontend origins |
 | `TRUSTED_PROXY_COUNT` | No | Number of trusted reverse proxies in front of the API (e.g. Render's edge); defaults to `1`. Used to pick the correct client IP out of `X-Forwarded-For` for rate limiting instead of trusting a client-supplied value |
@@ -336,6 +327,8 @@ python -m backend.eval.run_eval
 | GET | `/auth/me` | Authenticated |
 | POST | `/ask` | Authenticated, password reset complete |
 | POST | `/guest/ask` | Public, only when `GUEST_MODE_ENABLED=true`; restricted to `GUEST_ALLOWED_DOCUMENTS` |
+| POST | `/guest/custom-text/ask` | Public demo only; temporary TXT is processed in memory and not persisted |
+| GET | `/demo/context` | Public demo only; sanitized read-only metadata/config/health |
 | GET | `/documents` | Authenticated, password reset complete |
 | GET | `/document/{filename}` | Authenticated, password reset complete |
 | GET/PATCH/DELETE | `/history...` | Authenticated, ownership scoped |
@@ -362,13 +355,16 @@ python -m backend.eval.run_eval
 - Retrieval-method-aware confidence gating and LLM abstention downgrade
 - UTC timestamps with legacy naive-UTC display compatibility
 - Production API docs and retrieval debug routes disabled by default
+- Public demo metadata is sanitized and exposes no credentials, private document metadata, engineer identities, or mutation authority
+- Visitor-supplied TXT demo content is request-only, rate-limited, and never inserted into persistent storage or the production vector index
 
 ## Current deployment limits
 
+- Render Free may sleep after inactivity; the frontend starts a health check on landing and displays a warming state while the backend wakes.
 - Supabase Free may pause after extended inactivity and does not provide paid-tier uptime guarantees.
 - Local JSON/FAISS mode is for development and is not durable on Render Free.
 - Document processing is synchronous; large production workloads should use a background queue.
-- JWT access tokens do not use refresh tokens or a server-side blocklist of individually revoked tokens. Instead, each user carries a `token_version` counter, stamped into every token issued to them; a password change (self-service or admin-triggered) increments it, which invalidates every token issued before that change on their very next request — regardless of that token's remaining 12h lifetime. Active status and password-reset state are also checked on every protected request.
+- JWT access tokens do not use refresh tokens or a server-side blocklist of individually revoked tokens. Instead, each user carries a `token_version` counter, stamped into every token issued to them; a password change (self-service or admin-triggered) increments it, which invalidates every token issued before that change on their very next request â€” regardless of that token's remaining 12h lifetime. Active status and password-reset state are also checked on every protected request.
 - Retrieval thresholds should be recalibrated whenever the embedding model, corpus, or reranker changes.
 
 ## License

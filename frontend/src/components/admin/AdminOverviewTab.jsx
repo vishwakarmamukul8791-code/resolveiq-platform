@@ -67,7 +67,7 @@ function AdminOverviewTab() {
         </div>
 
         <div className="admin-kpi-card">
-          <span>CORPUS COVERAGE</span>
+          <span>HIGH-CONFIDENCE RATE</span>
           <strong>
             {analytics.corpus_coverage_score != null ? `${analytics.corpus_coverage_score}%` : "—"}
           </strong>

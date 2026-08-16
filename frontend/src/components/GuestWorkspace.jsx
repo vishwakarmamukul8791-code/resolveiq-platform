@@ -1,15 +1,14 @@
-// frontend/src/components/GuestWorkspace.jsx
-//
-// A stripped-down version of IncidentWorkspace for people trying the
-// product without logging in (e.g. from a "Try without login" link on
-// the landing page). No auth, no history, no document filter — just
-// ask a question against the public demo documents the backend has
-// allow-listed for guest access (see backend/routes/guest.py).
+// Public support-engineer demo.
+// - Demo KB mode uses the real allow-listed guest hybrid RAG endpoint.
+// - Own TXT mode is a bounded, non-persistent sandbox for one visitor file.
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { guestApi, ApiError } from "../api/client";
+import { askUploadedText, CustomGuestError } from "../api/customGuestClient";
 import SourceViewerModal from "./SourceViewerModal";
 import "../styles/incident-workspace.css";
+import "../styles/demo-explorer.css";
+import "../styles/custom-text-demo.css";
 
 function SendIcon() {
   return (
@@ -36,7 +35,18 @@ function SpinnerIcon() {
   );
 }
 
-function ConfidenceBadge({ level }) {
+function cleanAnswerText(value = "") {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/â€”/g, "—");
+}
+
+function ConfidenceBadge({ level, customContext = false }) {
+  if (customContext && level === "Grounded") {
+    return <span className="confidence-badge confidence-high">Grounded in uploaded TXT</span>;
+  }
+
   const cls =
     level === "High"
       ? "confidence-high"
@@ -71,7 +81,10 @@ function ExchangeCard({ exchange, onViewSource }) {
 
       <div className="exchange-answer">
         <div className="answer-meta">
-          <ConfidenceBadge level={exchange.confidence} />
+          <ConfidenceBadge
+            level={exchange.confidence}
+            customContext={exchange.customContext}
+          />
 
           {hasSources && (
             <button
@@ -86,21 +99,28 @@ function ExchangeCard({ exchange, onViewSource }) {
           )}
         </div>
 
-        <p className="answer-text">{exchange.answer}</p>
+        <p className="answer-text">{cleanAnswerText(exchange.answer)}</p>
 
         {showDetails && hasSources && (
           <div className="answer-details">
             <ul className="source-list">
               {exchange.sources.map((src, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    className="source-link"
-                    onClick={() => onViewSource(src)}
-                  >
-                    {src.document_name}
-                    {src.page_number != null && ` — p.${src.page_number}`}
-                  </button>
+                <li key={`${src.document_name}-${src.chunk_index ?? i}`}>
+                  {exchange.customContext ? (
+                    <span className="custom-source-label">
+                      {src.document_name}
+                      {src.chunk_index != null && ` — retrieved chunk ${src.chunk_index}`}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="source-link"
+                      onClick={() => onViewSource(src)}
+                    >
+                      {src.document_name}
+                      {src.page_number != null && ` — p.${src.page_number}`}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -112,13 +132,8 @@ function ExchangeCard({ exchange, onViewSource }) {
 }
 
 const GUEST_QUESTION_LIMIT = 5;
+const MAX_TXT_BYTES = 20_000;
 
-// Picked directly from the actual demo knowledge base (INC-1009 to
-// INC-1020) — each one uses specific terms that appear verbatim in a
-// chunk (strong BM25 match) while also being a clear, natural question
-// (strong semantic match), so both retrievers agree and this reliably
-// produces High confidence for a first-time visitor instead of them
-// having to guess what's in the demo documents.
 const EXAMPLE_QUESTIONS = [
   "Why am I seeing ORA-12154 TNS could not resolve the connect identifier?",
   "How do I fix a Kubernetes pod stuck in CrashLoopBackOff?",
@@ -127,14 +142,16 @@ const EXAMPLE_QUESTIONS = [
 ];
 
 function GuestWorkspace() {
+  const [mode, setMode] = useState("demo");
   const [query, setQuery] = useState("");
   const [exchanges, setExchanges] = useState([]);
   const [isAsking, setIsAsking] = useState(false);
   const [error, setError] = useState(null);
   const [viewingSource, setViewingSource] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [usedCount, setUsedCount] = useState(0);
 
   const textareaRef = useRef(null);
-  const threadEndRef = useRef(null);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -143,27 +160,93 @@ function GuestWorkspace() {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [query]);
 
-  useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [exchanges]);
-
   const hasStarted = exchanges.length > 0;
-  const askedCount = exchanges.filter((ex) => !ex.pending).length;
-  const reachedLimit = askedCount >= GUEST_QUESTION_LIMIT;
+  const askedCount = usedCount;
+  const reachedLimit = usedCount >= GUEST_QUESTION_LIMIT;
+  const uploadReady = mode === "upload" && uploadedFile?.text;
+
+  function switchMode(nextMode) {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setQuery("");
+    setExchanges([]);
+    setError(null);
+    setViewingSource(null);
+  }
+
+  async function handleFileChange(event) {
+    const file = event.target.files?.[0];
+    setError(null);
+    setExchanges([]);
+
+    if (!file) {
+      setUploadedFile(null);
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".txt")) {
+      setUploadedFile(null);
+      setError("Upload a .txt file for the public sandbox.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_TXT_BYTES) {
+      setUploadedFile(null);
+      setError("TXT sandbox files are limited to 20 KB.");
+      event.target.value = "";
+      return;
+    }
+
+    const text = await file.text();
+    if (text.trim().length < 40) {
+      setUploadedFile(null);
+      setError("Upload a TXT document with at least 40 characters.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploadedFile({
+      name: file.name,
+      size: file.size,
+      text,
+    });
+  }
 
   async function askQuestion(text) {
     const trimmed = text.trim();
     if (!trimmed || isAsking || reachedLimit) return;
+    if (mode === "upload" && !uploadReady) {
+      setError("Upload a TXT document first.");
+      return;
+    }
 
     setError(null);
     const pendingId = crypto.randomUUID();
 
-    setExchanges((prev) => [...prev, { id: pendingId, question: trimmed, pending: true }]);
+    setExchanges((prev) => [
+      ...prev,
+      {
+        id: pendingId,
+        question: trimmed,
+        pending: true,
+        customContext: mode === "upload",
+      },
+    ]);
     setQuery("");
     setIsAsking(true);
+    // Count API attempts across both demo-KB and temporary-TXT modes so
+    // switching sources cannot reset the visible five-question budget.
+    setUsedCount((count) => Math.min(GUEST_QUESTION_LIMIT, count + 1));
 
     try {
-      const data = await guestApi.ask(trimmed);
+      const data = mode === "upload"
+        ? await askUploadedText({
+            query: trimmed,
+            documentName: uploadedFile.name,
+            documentText: uploadedFile.text,
+          })
+        : await guestApi.ask(trimmed);
 
       setExchanges((prev) =>
         prev.map((ex) =>
@@ -174,6 +257,7 @@ function GuestWorkspace() {
                 answer: data.answer,
                 confidence: data.confidence,
                 sources: data.sources,
+                customContext: mode === "upload",
               }
             : ex
         )
@@ -181,8 +265,11 @@ function GuestWorkspace() {
     } catch (err) {
       setExchanges((prev) => prev.filter((ex) => ex.id !== pendingId));
       setQuery(trimmed);
+      if ((err instanceof ApiError || err instanceof CustomGuestError) && err.status === 429) {
+        setUsedCount(GUEST_QUESTION_LIMIT);
+      }
       setError(
-        err instanceof ApiError
+        err instanceof ApiError || err instanceof CustomGuestError
           ? err.message
           : "Something went wrong. Try again."
       );
@@ -207,35 +294,89 @@ function GuestWorkspace() {
     <section className={`incident-workspace ${hasStarted ? "workspace-active" : "workspace-empty"}`}>
       {!hasStarted && (
         <div className="workspace-intro">
-          <h1>Try ResolveIQ — no login needed</h1>
+          <h1>Explore the Support Engineer workflow</h1>
           <p>
-            Ask a question against a public demo knowledge base. Limited to
-            {" "}{GUEST_QUESTION_LIMIT} questions per visit — log in for full
-            access, or run your own instance to try everything.
+            Use the public demo knowledge base, or upload one small TXT runbook and ask questions
+            against your own temporary context.
           </p>
 
-          <div className="guest-suggestions">
-            {EXAMPLE_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                type="button"
-                className="guest-suggestion-chip"
-                onClick={() => askQuestion(q)}
-                disabled={isAsking || reachedLimit}
-              >
-                {q}
-              </button>
-            ))}
+          <div className="custom-mode-switch" role="tablist" aria-label="Support demo source">
+            <button
+              type="button"
+              className={mode === "demo" ? "active" : ""}
+              onClick={() => switchMode("demo")}
+            >
+              Demo knowledge base
+            </button>
+            <button
+              type="button"
+              className={mode === "upload" ? "active" : ""}
+              onClick={() => switchMode("upload")}
+            >
+              Upload your TXT
+            </button>
           </div>
+
+          {mode === "demo" ? (
+            <>
+              <div className="guest-suggestions-label">Recommended questions</div>
+              <div className="guest-suggestions">
+                {EXAMPLE_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    className="guest-suggestion-chip"
+                    onClick={() => askQuestion(q)}
+                    disabled={isAsking || reachedLimit}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="custom-upload-card">
+              <div>
+                <strong>Temporary TXT sandbox</strong>
+                <p>
+                  Public sandbox: TXT only · max 20 KB · processed in memory only. The full authenticated
+                  ResolveIQ workflow supports PDF, CSV, and TXT. Sandbox uploads are not added to
+                  storage, registry, or the vector index.
+                </p>
+              </div>
+
+              <label className="custom-upload-button">
+                {uploadedFile ? "Replace TXT" : "Choose TXT file"}
+                <input
+                  type="file"
+                  accept=".txt,text/plain"
+                  onChange={handleFileChange}
+                  disabled={isAsking}
+                />
+              </label>
+
+              {uploadedFile && (
+                <div className="custom-upload-selected">
+                  <span>Ready</span>
+                  <strong>{uploadedFile.name}</strong>
+                  <small>{Math.max(1, Math.round(uploadedFile.size / 1024))} KB · temporary</small>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {hasStarted && (
         <div className="workspace-thread">
+          <div className="custom-active-context">
+            {mode === "upload"
+              ? `Temporary TXT: ${uploadedFile?.name || "uploaded document"}`
+              : "Public demo knowledge base"}
+          </div>
           {exchanges.map((ex) => (
             <ExchangeCard key={ex.id} exchange={ex} onViewSource={setViewingSource} />
           ))}
-          <div ref={threadEndRef} />
         </div>
       )}
 
@@ -244,9 +385,7 @@ function GuestWorkspace() {
 
         {reachedLimit && (
           <div className="composer-error">
-            You've reached the guest question limit for this visit. Log in
-            if you have credentials, or run your own instance to keep
-            exploring.
+            You've reached the 5-question demo limit for this visit.
           </div>
         )}
 
@@ -255,23 +394,34 @@ function GuestWorkspace() {
             ref={textareaRef}
             className="chat-textarea"
             rows={1}
-            placeholder="Describe the incident or paste an error message…"
+            placeholder={
+              mode === "upload"
+                ? uploadedFile
+                  ? "Ask a question about your uploaded TXT…"
+                  : "Upload a TXT document first…"
+                : "Describe the incident or paste an error message…"
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isAsking || reachedLimit}
+            disabled={isAsking || reachedLimit || (mode === "upload" && !uploadReady)}
             aria-label="Describe the incident"
           />
 
           <div className="chat-input-footer">
             <span className="composer-hint">
-              {askedCount}/{GUEST_QUESTION_LIMIT} guest questions used
+              {askedCount} / {GUEST_QUESTION_LIMIT} demo questions used
             </span>
 
             <button
               type="submit"
               className="send-button"
-              disabled={isAsking || reachedLimit || !query.trim()}
+              disabled={
+                isAsking ||
+                reachedLimit ||
+                !query.trim() ||
+                (mode === "upload" && !uploadReady)
+              }
               aria-label="Ask"
             >
               {isAsking ? <SpinnerIcon /> : <SendIcon />}

@@ -38,6 +38,11 @@
 }
 
 
+.platform-status-label.waking {
+    color: var(--color-accent-light);
+}
+
+
 .platform-status-label.online {
     color: var(--color-success-bright);
 }
@@ -93,6 +98,16 @@
 
 .api-status.checking strong {
     color: var(--color-text-faint);
+}
+
+
+.api-status.waking i {
+    background: var(--color-accent-light);
+}
+
+
+.api-status.waking strong {
+    color: var(--color-accent-light);
 }
 
 
