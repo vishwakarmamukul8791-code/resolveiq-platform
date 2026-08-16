@@ -3,13 +3,29 @@
 import { useEffect, useState } from "react";
 import { adminApi, ApiError } from "../../api/client";
 
+const RETRIEVAL_EVALUATION = [
+  { label: "SEMANTIC HIT@1", value: "90.5%", note: "Offline retrieval evaluation" },
+  { label: "BM25 HIT@1", value: "85.7%", note: "Offline retrieval evaluation" },
+  { label: "HYBRID HIT@1", value: "90.5%", note: "BM25 + vector + RRF" },
+  { label: "HYBRID HIT@5", value: "100%", note: "Relevant result within top five" },
+];
+
 function AdminRagInsightsTab() {
   const [state, setState] = useState({ status: "loading" });
 
   useEffect(() => {
-    Promise.all([adminApi.getKnowledgeGaps(), adminApi.getSourceAnalytics()])
-      .then(([gaps, sources]) => {
-        setState({ status: "ready", gaps, sources });
+    Promise.all([
+      adminApi.getKnowledgeGaps(),
+      adminApi.getSourceAnalytics(),
+      adminApi.getSystemHealth(),
+    ])
+      .then(([gaps, sources, systemHealth]) => {
+        setState({
+          status: "ready",
+          gaps,
+          sources,
+          stats: systemHealth.stats,
+        });
       })
       .catch((err) => {
         setState({
@@ -35,11 +51,65 @@ function AdminRagInsightsTab() {
     );
   }
 
-  const { gaps, sources } = state;
+  const { gaps, sources, stats } = state;
   const maxCitations = Math.max(1, ...sources.sources.map((s) => s.citations), 1);
+
+  const pipeline = [
+    {
+      step: "01",
+      title: "Question validation",
+      detail: "Reject malformed or multi-question requests before retrieval.",
+    },
+    {
+      step: "02",
+      title: "Configurable query rewrite",
+      detail: stats.query_rewrite_enabled
+        ? "Enabled in this runtime; safe fallback keeps the original query."
+        : "Disabled in this runtime; retrieval uses the original query.",
+    },
+    {
+      step: "03",
+      title: "BM25 + vector retrieval",
+      detail: "Lexical and semantic search retrieve complementary evidence.",
+    },
+    {
+      step: "04",
+      title: "Reciprocal Rank Fusion",
+      detail: "RRF combines lexical and semantic rankings.",
+    },
+    {
+      step: "05",
+      title: "Optional cross-encoder rerank",
+      detail: stats.reranker_enabled
+        ? "Enabled in this runtime."
+        : "Disabled in this runtime; fused ranking is used directly.",
+    },
+    {
+      step: "06",
+      title: "Confidence gate",
+      detail: "Weak or out-of-domain evidence is stopped before generation.",
+    },
+    {
+      step: "07",
+      title: "Grounded Gemini answer",
+      detail: "Generation is constrained to accepted retrieved context.",
+    },
+    {
+      step: "08",
+      title: "Citations / safe abstention",
+      detail: "Return supporting sources or abstain when evidence is insufficient.",
+    },
+  ];
 
   return (
     <>
+      <div className="panel-heading">
+        <div>
+          <span className="section-label">LIVE OPERATIONAL ANALYTICS</span>
+          <h2>Current authenticated workspace activity</h2>
+        </div>
+      </div>
+
       <section className="admin-kpi-grid">
         <div className="admin-kpi-card">
           <span>TOTAL QUESTIONS</span>
@@ -63,6 +133,52 @@ function AdminRagInsightsTab() {
           <span>TOTAL CITATIONS</span>
           <strong>{sources.total_citations}</strong>
           <p>Across High/Medium confidence answers</p>
+        </div>
+      </section>
+
+      <section className="admin-panel rag-evaluation-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="section-label">RETRIEVAL EVALUATION</span>
+            <h2>Measured retrieval quality</h2>
+          </div>
+
+          <span className="rag-snapshot-badge">DOCUMENTED SNAPSHOT</span>
+        </div>
+
+        <p className="admin-hint">
+          Offline benchmark snapshot kept separate from the live operational analytics above.
+        </p>
+
+        <div className="rag-eval-grid">
+          {RETRIEVAL_EVALUATION.map((metric) => (
+            <div key={metric.label} className="rag-eval-card">
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+              <p>{metric.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="admin-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="section-label">RAG PIPELINE</span>
+            <h2>Retrieval first, generation only after evidence passes</h2>
+          </div>
+        </div>
+
+        <div className="rag-pipeline-grid">
+          {pipeline.map((stage) => (
+            <div key={stage.step} className="rag-pipeline-step">
+              <span className="rag-pipeline-number">{stage.step}</span>
+              <div>
+                <strong>{stage.title}</strong>
+                <p>{stage.detail}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

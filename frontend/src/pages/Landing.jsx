@@ -2,9 +2,11 @@ import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import LoginPanel from "../components/LoginPanel";
 import PlatformStatus from "../components/PlatformStatus";
-import CapabilityGrid from "../components/CapabilityGrid";
+import DemoEntryCard from "../components/DemoEntryCard";
+import LandingRagStory from "../components/LandingRagStory";
 
 import "../styles/Landing.css";
+import "../styles/demo-explorer.css";
 
 function Landing() {
     return (
@@ -19,17 +21,19 @@ function Landing() {
 
                     <PlatformStatus />
 
+                    <LandingRagStory />
+
                 </div>
 
-                <div className="landing-right">
+                <div className="landing-right landing-right-stack">
+
+                    <DemoEntryCard />
 
                     <LoginPanel />
 
                 </div>
 
             </div>
-
-            <CapabilityGrid />
 
         </>
     );

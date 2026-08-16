@@ -1,7 +1,7 @@
 // frontend/src/components/LoginPanel.jsx
 
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../api/client";
 import "../styles/login-panel.css";
@@ -25,8 +25,6 @@ function LoginPanel() {
     navigate(currentRole === "admin" ? "/admin" : "/support", { replace: true });
   }
 
-  // Navigation is a side effect. Running it during render causes React
-  // warnings and can produce duplicate redirects in Strict Mode.
   useEffect(() => {
     if (isAuthenticated && !mustResetPassword) {
       navigate(role === "admin" ? "/admin" : "/support", {
@@ -50,8 +48,6 @@ function LoginPanel() {
       if (!data.must_reset_password) {
         redirectByRole(data.role);
       }
-      // Otherwise: mustResetPassword is now true in context, so the reset
-      // form below renders on the next render — no navigation yet.
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Login failed. Try again.");
     } finally {
@@ -74,10 +70,6 @@ function LoginPanel() {
 
     setIsResetting(true);
     try {
-      // `password` still holds what was typed on the sign-in step above —
-      // the backend requires proof of the current password before
-      // accepting a new one, so this reuses it instead of asking the
-      // person to type their just-used temporary password a second time.
       await completePasswordReset(password, newPassword);
       redirectByRole(role);
     } catch (err) {
@@ -201,10 +193,6 @@ function LoginPanel() {
 
       <div className="login-footer">
         Account access is managed by your administrator.
-      </div>
-
-      <div className="login-footer">
-        Just evaluating the project? <Link to="/try">Try it without logging in</Link>
       </div>
     </section>
   );
